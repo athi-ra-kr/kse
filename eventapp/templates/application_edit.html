@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit {{ app.register_no }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root{ --surface:#fff; --border:#e5e7eb; --bg:#f7f8fc; --text:#111827; --muted:#6b7280; --brand:#6366f1; --error:#ef4444 }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:0;background:var(--bg);color:var(--text)}
+    .top{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid var(--border);background:#fff}
+    .wrap{max-width:900px;margin:20px auto;padding:0 20px}
+    .card{background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:0 10px 26px rgba(15,23,42,.06);padding:16px}
+    label{display:block;margin:12px 0 6px}
+    input, select{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;font-size:16px}
+    input:focus,select:focus{outline:none;border-color:#a5b4fc;box-shadow:0 0 0 2px #e0e7ff}
+    .row{display:flex;gap:10px;align-items:end}
+    .muted{color:var(--muted)}
+    .btn{background:var(--brand);color:#fff;padding:10px 16px;border:none;border-radius:10px;cursor:pointer;font-weight:700}
+    .btn.secondary{background:#6b7280}
+    .counter{display:flex;align-items:center;gap:10px;border:1px solid var(--border);padding:6px;border-radius:10px}
+    .icon-btn{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:#f8fafc;cursor:pointer}
+    .members-title{margin:14px 0 8px;font-weight:800}
+    .members-head{display:none}
+    @media (min-width:641px){
+      .members-head{
+        display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px;
+        background:#fff;border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:.85rem;font-weight:700
+      }
+    }
+    .members-grid{display:grid;gap:12px}
+    .member-card{border:1px solid var(--border);border-radius:10px;padding:10px;background:#fff}
+    .member-grid{display:grid;grid-template-columns:minmax(180px,1.2fr) minmax(220px,1fr) minmax(220px,1fr);gap:8px}
+    @media (max-width:640px){.member-grid{grid-template-columns:1fr}}
+    .is-invalid{border-color:var(--error)!important;box-shadow:0 0 0 2px rgba(239,68,68,.18)!important}
+    .hint{font-size:.78rem;color:#6b7280;margin-top:4px}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div><strong>Edit Application</strong></div>
+    <div><a href="{% url 'eventapp:dashboard' %}" class="muted">Back to Dashboard</a></div>
+  </div>
+
+  <div class="wrap">
+    <div class="card">
+      <p><strong>Register No:</strong> <span class="mono">{{ app.register_no }}</span></p>
+
+      <form id="editForm" method="post">
+        {% csrf_token %}
+
+        <label>School</label>
+        <select name="school_id" required>
+          {% for s in schools %}
+            <option value="{{ s.id }}" {% if s.id == app.school_id %}selected{% endif %}>{{ s.name }}</option>
+          {% endfor %}
+        </select>
+
+        <label>Program</label>
+        <select name="program_name" required>
+          {% for code,label in app.PROGRAM_CHOICES %}
+            <option value="{{ code }}" {% if code == app.program_name %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+
+        <label style="margin-top:14px">Team Size (2–8)</label>
+        <div class="row">
+          <div class="counter">
+            <button type="button" class="icon-btn" id="decBtn" aria-label="Decrease">−</button>
+            <input type="number" id="team_size" name="team_size" step="1" min="2" max="8" value="{{ app.team_size|default:2 }}" required style="width:110px;text-align:center">
+            <button type="button" class="icon-btn" id="incBtn" aria-label="Increase">+</button>
+          </div>
+          <div class="muted">Edit all members below. Member 1 auto-fills the legacy primary.</div>
+        </div>
+
+        <div class="members-title">Team Members</div>
+        <div class="members-head" aria-hidden="true">
+          <div>Name</div>
+          <div>Phone (10 digits)</div>
+          <div>Alt phone (optional)</div>
+        </div>
+        <div id="membersWrap" class="members-grid"></div>
+
+        <!-- Primary mirrored from Member 1 on submit -->
+        <input type="hidden" name="name" id="primary_name" value="{{ app.name }}">
+        <input type="hidden" name="mobile" id="primary_mobile" value="{{ app.mobile }}">
+
+        <div style="margin-top:16px;display:flex;gap:10px">
+          <button class="btn">Save</button>
+          <a class="btn secondary" href="{% url 'eventapp:dashboard' %}">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if app.members %}
+    {{ app.members|json_script:"membersData" }}
+  {% else %}
+    <script id="membersData" type="application/json">
+      [{ "name": "{{ app.name|escapejs }}", "mobile": "{{ app.mobile|escapejs }}" }]
+    </script>
+  {% endif %}
+
+  <script>
+    // Any 10-digit validation on the client (server also enforces)
+    const digitsOnly = s => (s||"").replace(/\D+/g,"");
+    const PHONE_RE = /^\d{10}$/;
+    const PHONE_MSG = "Enter a valid 10-digit mobile number";
+
+    function enforcePhone(input){
+      const d = digitsOnly(input.value).slice(0,10);
+      if(input.value !== d) input.value = d;
+      if(!input.required && d.length===0){
+        input.setCustomValidity(""); input.classList.remove("is-invalid"); input.removeAttribute("aria-invalid"); input.title=""; return true;
+      }
+      if(!PHONE_RE.test(d)){
+        input.setCustomValidity(PHONE_MSG); input.classList.add("is-invalid"); input.setAttribute("aria-invalid","true"); input.title=PHONE_MSG; return false;
+      }
+      input.setCustomValidity(""); input.classList.remove("is-invalid"); input.removeAttribute("aria-invalid"); input.title=""; return true;
+    }
+
+    const membersWrap = document.getElementById("membersWrap");
+    const form = document.getElementById("editForm");
+    const teamInput = document.getElementById("team_size");
+    const incBtn = document.getElementById("incBtn");
+    const decBtn = document.getElementById("decBtn");
+
+    let initialMembers = [];
+    try{ initialMembers = JSON.parse(document.getElementById("membersData").textContent || "[]"); }catch(e){ initialMembers = []; }
+    if(!Array.isArray(initialMembers) || initialMembers.length===0){
+      initialMembers = [{ name: "{{ app.name|escapejs }}", mobile: digitsOnly("{{ app.mobile|escapejs }}"), alt: "" }];
+    }
+
+    function memberCardHTML(i, m){
+      const idx = i - 1;
+      const nm = (m && m.name) || "";
+      const mb = (m && m.mobile) ? String(m.mobile).replace(/\D+/g,"").slice(0,10) : "";
+      const at = (m && m.alt) ? String(m.alt).replace(/\D+/g,"").slice(0,10) : "";
+      return `
+        <div class="member-card" id="member-card-${idx}">
+          <div class="member-grid">
+            <div>
+              <label for="members-${idx}-name">Full name</label>
+              <input required id="members-${idx}-name" name="members-${idx}-name" value="${nm.replace(/"/g,'&quot;')}" autocomplete="name">
+            </div>
+            <div>
+              <label for="members-${idx}-mobile">Phone</label>
+              <input required id="members-${idx}-mobile" name="members-${idx}-mobile"
+                     inputmode="tel" autocomplete="tel-national"
+                     pattern="^\\d{10}$" maxlength="10" minlength="10" value="${mb}">
+              <div class="hint"></div>
+            </div>
+            <div>
+              <label for="members-${idx}-alt">Alt phone (optional)</label>
+              <input id="members-${idx}-alt" name="members-${idx}-alt"
+                     inputmode="tel" autocomplete="tel"
+                     pattern="^\\d{10}$" maxlength="10" minlength="10" value="${at}">
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function clamp(n){ n=parseInt(n,10); if(isNaN(n)) n=2; return Math.max(2, Math.min(8, n)); }
+
+    function renderMembers(n){
+      n = clamp(n);
+      const cur = initialMembers.slice(0, n);
+      while(cur.length < n){ cur.push({name:"", mobile:"", alt:""}); }
+
+      let html = "";
+      for(let i=1;i<=n;i++){ html += memberCardHTML(i, cur[i-1]); }
+      membersWrap.innerHTML = html;
+
+      membersWrap.querySelectorAll('input[id$="-mobile"], input[id$="-alt"]').forEach(inp=>{
+        enforcePhone(inp);
+        inp.addEventListener("input", ()=>enforcePhone(inp));
+        inp.addEventListener("blur", ()=>enforcePhone(inp));
+      });
+    }
+
+    // initial
+    renderMembers(teamInput.value || 2);
+
+    // controls
+    function updateMembers(){ teamInput.value = String(clamp(teamInput.value)); renderMembers(teamInput.value); }
+    teamInput.addEventListener("input", updateMembers);
+    teamInput.addEventListener("change", updateMembers);
+    incBtn.addEventListener("click", ()=>{ teamInput.value = String(clamp((parseInt(teamInput.value||2,10)+1))); updateMembers(); });
+    decBtn.addEventListener("click", ()=>{ teamInput.value = String(clamp((parseInt(teamInput.value||2,10)-1))); updateMembers(); });
+
+    // Mirror Member 1 to legacy hidden fields
+    form.addEventListener("submit", ()=>{
+      const n = form.querySelector('input[name="members-0-name"]')?.value?.trim() || "";
+      const m = digitsOnly(form.querySelector('input[name="members-0-mobile"]')?.value || "");
+      document.getElementById("primary_name").value = n;
+      document.getElementById("primary_mobile").value = m;
+    });
+  </script>
+</body>
+</html>

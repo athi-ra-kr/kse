@@ -1,0 +1,263 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="https://www.kselimited.com/ksefavicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Winners – Children's Day</title>
+
+    <style>
+      /* ===== DESIGN TOKENS ===== */
+      :root{
+        --bg:#f7f8fc; --surface:#fff; --text:#0f172a; --muted:#64748b; --border:#e5e7eb;
+        --brand1:#667eea; --brand2:#764ba2; --brand3:#06b6d4;
+        --chip-bg:#eef2ff; --chip-text:#3730a3; --ring:#dbeafe;
+        --header-h:80px;
+        --shadow-1:0 10px 26px rgba(15,23,42,.06);
+        --shadow-2:0 24px 60px rgba(15,23,42,.12);
+      }
+      *,*::before,*::after{box-sizing:border-box}
+      html,body{height:100%}
+      html{scroll-behavior:smooth}
+      body{
+        margin:0; padding-top:var(--header-h);
+        font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial;
+        color:var(--text); background:var(--bg)
+      }
+      img{max-width:100%; display:block}
+      a{color:inherit; text-decoration:none}
+
+      /* ===== HEADER (same structure / behavior as main) ===== */
+      header{
+        position:fixed; inset:0 0 auto; height:var(--header-h);
+        background:#fff; border-bottom:1px solid var(--border); z-index:1000
+      }
+      .header-container{
+        max-width:1200px; margin:0 auto; height:100%;
+        display:flex; align-items:center; justify-content:space-between; padding:15px 20px
+      }
+      .logo img{height:44px}
+      nav[aria-label="Primary"]{display:flex; gap:24px}
+      .mobile-menu-toggle{display:none; flex-direction:column; gap:5px; cursor:pointer; padding:5px}
+      .mobile-menu-toggle span{width:25px; height:3px; background:#333; border-radius:2px}
+      @media (max-width:768px){
+        .mobile-menu-toggle{display:flex}
+        nav[aria-label="Primary"]{
+          position:fixed; top:var(--header-h); left:0; right:0; background:#fff;
+          flex-direction:column; gap:0; border-bottom:1px solid var(--border);
+          max-height:0; overflow:hidden; transition:max-height .25s ease
+        }
+        nav[aria-label="Primary"].active{max-height:340px}
+        nav[aria-label="Primary"] a{padding:14px 20px; border-top:1px solid var(--border)}
+      }
+
+      /* ===== PAGE WRAP ===== */
+      .container{max-width:1200px; margin:0 auto; padding:26px 20px}
+      .page-head{
+        display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap
+      }
+      .page-title{
+        margin:0; font-weight:900;
+        font-size:clamp(1.15rem, 2.2vw, 1.6rem);
+        letter-spacing:.2px
+      }
+      .muted{color:var(--muted)}
+
+      /* Search */
+      .filters{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px}
+      .search{
+        display:flex; align-items:center; gap:8px; padding:10px 12px; background:#fff;
+        border:1px solid var(--border); border-radius:12px; min-width:260px;
+        transition:border-color .2s, box-shadow .2s
+      }
+      .search:focus-within{border-color:#c7d2fe; box-shadow:0 0 0 4px var(--ring)}
+      .search input{
+        border:none; outline:none; width:220px; font-size:14.5px; background:transparent
+      }
+      .btn{
+        padding:10px 14px; border:1px solid var(--border); border-radius:12px;
+        background:#fff; font-weight:800; letter-spacing:.2px; cursor:pointer
+      }
+      .btn:hover{border-color:#c7d2fe; box-shadow:0 0 0 4px var(--ring)}
+
+      /* ===== GRID & CARDS ===== */
+      .grid{display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-top:18px}
+      @media (max-width:1200px){.grid{grid-template-columns:repeat(3,1fr)}}
+      @media (max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}
+      @media (max-width:540px){.grid{grid-template-columns:1fr}}
+
+      .card{
+        position:relative; background:#fff; border:1px solid var(--border); border-radius:16px;
+        overflow:hidden; display:flex; flex-direction:column; box-shadow:var(--shadow-1);
+        transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+        animation:fadeIn .35s ease both;
+      }
+      .card:hover{transform:translateY(-2px); box-shadow:var(--shadow-2); border-color:#dbeafe}
+
+      /* Ribbon (rank) */
+      .ribbon{
+        position:absolute; top:12px; right:-38px; width:140px; text-align:center;
+        transform:rotate(45deg); color:#111827; font-weight:900; font-size:.82rem;
+        padding:6px 0; box-shadow:0 6px 18px rgba(2,6,23,.12); letter-spacing:.3px
+      }
+      .r1{background:#fde68a} /* gold */
+      .r2{background:#e5e7eb} /* silver */
+      .r3{background:#fca5a5} /* bronze */
+
+      /* Media */
+      .thumb{width:100%; height:170px; object-fit:cover; background:linear-gradient(135deg,#f8fafc,#eef2ff)}
+      .content{padding:14px}
+      .row{display:flex; justify-content:space-between; align-items:center; gap:10px}
+
+      /* Chips / badges */
+      .chip{
+        display:inline-block; font-size:.78rem; background:var(--chip-bg); color:var(--chip-text);
+        border:1px solid #c7d2fe; padding:3px 10px; border-radius:999px; font-weight:800
+      }
+      .badge{
+        display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px;
+        border:1px solid var(--border); background:#fff; font-weight:800; font-size:.82rem
+      }
+
+      /* Text blocks */
+      .title{margin:10px 0 4px; font-size:1.06rem; font-weight:900; line-height:1.1}
+      .meta{font-size:.9rem; color:var(--muted)}
+      .list{margin:12px 0 0; padding:0; list-style:none; font-size:.95rem; line-height:1.45}
+      .list li{padding:2px 0}
+
+      /* Empty state */
+      .empty{
+        background:linear-gradient(0deg,#fff,#fff), radial-gradient(900px 900px at 0% 0%, #eef2ff 0%, transparent 38%) no-repeat;
+        border:1px dashed var(--border); border-radius:16px; padding:28px; text-align:center; color:var(--muted)
+      }
+
+      /* Footer */
+      footer{background:#2c3e50; color:#fff; text-align:center; padding:20px; margin-top:40px}
+
+      /* Animations */
+      @keyframes fadeIn{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:translateY(0)}}
+    </style>
+  </head>
+
+  <body>
+    <!-- ===== Header (same) ===== -->
+    <header>
+      <div class="header-container">
+        <a href="{% url 'eventapp:index' %}" class="logo" aria-label="KSE Home">
+          <img src="https://www.kselimited.com/images/kselogo2.png" alt="KSE Logo" width="150" height="44" loading="eager" />
+        </a>
+        <div class="mobile-menu-toggle" onclick="toggleMobileMenu()" aria-label="Toggle menu" aria-expanded="false" aria-controls="mainNav"><span></span><span></span><span></span></div>
+        <nav id="mainNav" aria-label="Primary">
+          <a href="{% url 'eventapp:index' %}#home" onclick="closeMobileMenu()">Home</a>
+          <a href="{% url 'eventapp:index' %}#lkg" onclick="closeMobileMenu()">LKG Programs</a>
+          <a href="{% url 'eventapp:index' %}#ukg" onclick="closeMobileMenu()">UKG Programs</a>
+          <a href="{% url 'eventapp:index' %}#lp" onclick="closeMobileMenu()">LP Programs</a>
+          <a href="{% url 'eventapp:index' %}#up" onclick="closeMobileMenu()">UP Programs</a>
+          <a href="{% url 'eventapp:index' %}#hs" onclick="closeMobileMenu()">HS Programs</a>
+          {% if has_winners %}
+            <a href="{% url 'eventapp:winnerslist' %}" onclick="closeMobileMenu()" style="font-weight:800">Winners</a>
+          {% endif %}
+        </nav>
+      </div>
+    </header>
+
+    <!-- ===== Page ===== -->
+    <div class="container">
+      <div class="page-head">
+        <h1 class="page-title">🏆 Winners</h1>
+        <div class="filters">
+          <label class="search" for="q" aria-label="Search winners">
+            <!-- search icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M21 21l-4.3-4.3M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="#475569" stroke-width="1.6" stroke-linecap="round" />
+            </svg>
+            <input id="q" placeholder="Filter by reg no / name / programme / school…" oninput="filterCards()" autocomplete="off">
+          </label>
+          <button class="btn" type="button" onclick="clearFilter()">Reset</button>
+        </div>
+      </div>
+      <p class="muted" style="margin:.25rem 0 0">Congrats to all winners! Browse by programme and school below.</p>
+
+      {% if winners %}
+        <div id="grid" class="grid">
+          {% for a in winners %}
+            <article class="card"
+                     data-search="{{ a.register_no }} {{ a.program_name }} {{ a.school.name }} {% if a.members %}{% for m in a.members %}{{ m.name }} {% endfor %}{% else %}{{ a.name }}{% endif %}">
+              {# Simple category-based artwork fallback; replace with Programme.image mapping when desired #}
+              {% if a.program_name and a.program_name|lower|slice:":3" == "lkg" %}
+                <img class="thumb" src="{% static 'image/winner-lkg.jpg' %}" alt="Programme image" loading="lazy" onerror="this.style.display='none'">
+              {% elif a.program_name and a.program_name|lower|slice:":3" == "ukg" %}
+                <img class="thumb" src="{% static 'image/winner-ukg.jpg' %}" alt="Programme image" loading="lazy" onerror="this.style.display='none'">
+              {% elif a.program_name and a.program_name|lower|slice:":2" == "lp" %}
+                <img class="thumb" src="{% static 'image/winner-lp.jpg' %}" alt="Programme image" loading="lazy" onerror="this.style.display='none'">
+              {% elif a.program_name and a.program_name|lower|slice:":2" == "up" %}
+                <img class="thumb" src="{% static 'image/winner-up.jpg' %}" alt="Programme image" loading="lazy" onerror="this.style.display='none'">
+              {% elif a.program_name and a.program_name|lower|slice:":2" == "hs" %}
+                <img class="thumb" src{% if False %}=""{% endif %}="{% static 'image/winner-hs.jpg' %}" alt="Programme image" loading="lazy" onerror="this.style.display='none'">
+              {% else %}
+                <img class="thumb" src="{% static 'image/winner-placeholder.jpg' %}" alt="Programme image" loading="lazy" onerror="this.style.display='none'">
+              {% endif %}
+
+              {% if a.winner_rank %}
+                <div class="ribbon {% if a.winner_rank == 1 %}r1{% elif a.winner_rank == 2 %}r2{% elif a.winner_rank == 3 %}r3{% endif %}">
+                  {% if a.winner_rank == 1 %}🥇 1st{% elif a.winner_rank == 2 %}🥈 2nd{% elif a.winner_rank == 3 %}🥉 3rd{% else %}Rank {{ a.winner_rank }}{% endif %}
+                </div>
+              {% endif %}
+
+              <div class="content">
+                <div class="row">
+                  <span class="chip">{{ a.program_name }}</span>
+                  <span class="badge" title="Team size">{{ a.team_size }}</span>
+                </div>
+
+                <div class="title">{{ a.school.name }}</div>
+                <div class="meta">Reg No: <strong>{{ a.register_no }}</strong></div>
+
+                <ul class="list" aria-label="Team members">
+                  {% if a.members and a.members.0 %}
+                    {% for m in a.members %}
+                      {% if m.name %}<li>{{ m.name }}</li>{% endif %}
+                    {% endfor %}
+                  {% else %}
+                    {% if a.name %}<li>{{ a.name }}</li>{% endif %}
+                  {% endif %}
+                </ul>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty">
+          <div style="font-size:1.1rem; font-weight:900; margin-bottom:6px">No winners yet</div>
+          <div>Check back soon after results are published.</div>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- ===== Footer (same) ===== -->
+    <footer>
+      <p>&copy; 2025 Children's Day Celebration. All rights reserved.</p>
+    </footer>
+
+    <script>
+      // Header nav toggle (same behavior as main)
+      const nav = document.getElementById('mainNav');
+      function toggleMobileMenu(){nav.classList.toggle('active');}
+      function closeMobileMenu(){nav.classList.remove('active')}
+
+      // Client-side filter
+      function filterCards(){
+        const q = (document.getElementById('q').value || '').toLowerCase().trim();
+        const items = document.querySelectorAll('#grid .card');
+        items.forEach(el=>{
+          const hay = (el.getAttribute('data-search') || '').toLowerCase();
+          el.style.display = hay.includes(q) ? '' : 'none';
+        });
+      }
+      function clearFilter(){
+        const el = document.getElementById('q'); el.value=''; filterCards(); el.focus();
+      }
+    </script>
+  </body>
+</html>

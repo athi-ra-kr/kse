@@ -1,0 +1,272 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Winners</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root{
+      --border:#e5e7eb;--surface:#fff;--bg:#f7f8fc;--muted:#64748b;--text:#0f172a;
+      --shadow:0 10px 26px rgba(15,23,42,.06);
+    }
+    *{box-sizing:border-box}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial;background:var(--bg);margin:0;color:var(--text)}
+    a{text-decoration:none;color:inherit}
+
+    /* Sidebar */
+    .sidebar{
+      width:240px;background:var(--surface);border-right:1px solid var(--border);
+      position:fixed;inset:0 auto 0 0;padding:20px
+    }
+    .logo{display:block;margin-bottom:12px}
+    .nav a{display:block;padding:10px 12px;border-radius:10px;color:#111827;margin-bottom:6px}
+    .nav a.active,.nav a:hover{background:#eef2ff;color:#4f46e5}
+
+    /* Main/top bar */
+    .main{margin-left:240px;padding:20px}
+    .top{
+      background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px;
+      display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap
+    }
+    .muted{color:var(--muted)}
+    .btn{
+      padding:8px 12px;border:1px solid var(--border);border-radius:10px;background:#fff;display:inline-flex;align-items:center;gap:6px;font-weight:600;cursor:pointer
+    }
+    .btn.brand{border-color:#c7d2fe;background:#eef2ff;color:#3730a3}
+    .btn.danger{border-color:#fecaca;background:#fef2f2;color:#991b1b}
+    input[type="search"]{padding:8px 12px;border:1px solid var(--border);border-radius:10px}
+
+    /* Table card */
+    .card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow)}
+    .table-wrap{overflow:auto;border-radius:12px}
+    table{width:100%;border-collapse:collapse;min-width:1100px}
+    th,td{padding:12px 10px;border-bottom:1px solid #eef2f7;text-align:left;vertical-align:middle}
+    thead th{background:#f9fafb}
+
+    /* Make long member lists wrap nicely */
+    .wrap{white-space:normal; line-height:1.4}
+
+    /* Modal */
+    .modal{display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.4);align-items:center;justify-content:center;padding:18px}
+    .modal.open{display:flex}
+    .modal-card{width:min(560px,96vw);background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 20px 60px rgba(2,6,23,.18);overflow:hidden}
+    .modal-head,.modal-actions{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);background:#fff}
+    .modal-actions{border-top:1px solid var(--border);border-bottom:none;justify-content:flex-end;gap:8px}
+    .modal-body{padding:14px}
+    label{display:block;font-size:.9rem;margin-bottom:6px}
+    input, textarea, select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px}
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <a href="#" class="logo">
+      <img src="{% static 'image/kselogo2.png' %}" alt="KSE Logo" width="150" height="44">
+    </a>
+    <nav class="nav">
+      <a href="{% url 'eventapp:dashboard' %}">Applications</a>
+      <a href="{% url 'eventapp:school_list' %}">Schools</a>
+      <a href="{% url 'eventapp:program_list' %}">Programmes</a>
+      <a href="{% url 'eventapp:banner_list' %}">Banner</a>
+      <a href="{% url 'eventapp:winners' %}" class="active">Winners</a>
+    </nav>
+    <a class="btn" href="{% url 'eventapp:logout' %}" style="margin-top:12px;display:inline-block">Logout</a>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="top">
+      <div>
+        <strong style="font-size:1rem">🏆 Winners</strong>
+        <span class="muted" style="margin-left:6px">Manage submissions marked as winners</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <form method="get" action="">
+          <input type="search" name="q" value="{{ q|default:'' }}" placeholder="Search reg no / name / school">
+          <button class="btn" type="submit">Search</button>
+          <a class="btn" href="{% url 'eventapp:winners' %}">Reset</a>
+        </form>
+        <a class="btn brand" href="{% url 'eventapp:winners_export' %}">⬇ Export CSV</a>
+        <button class="btn brand" type="button" onclick="openAdd()">＋ Add Winner</button>
+      </div>
+    </div>
+
+    {% if messages %}
+      {% for m in messages %}
+        <div class="card" style="padding:10px 12px;margin-bottom:10px">{{ m|safe }}</div>
+      {% endfor %}
+    {% endif %}
+
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Register No</th>
+              <th>Programme</th>
+              <th>School</th>
+              <th class="wrap">Team Members</th> <!-- CHANGED: show all names -->
+              <th>Team Size</th>
+              <th>Rank</th>
+              <th>Note</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in winners %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+              <td><strong>{{ a.register_no }}</strong></td>
+              <td>{{ a.program_name }}</td>
+              <td>{{ a.school.name }}</td>
+
+              <!-- ALL MEMBER NAMES -->
+              <td class="wrap">
+                {% if a.members and a.members.0 %}
+                  {{ a.members.0.name }}
+                  {% if a.members|length > 1 %}
+                    {% for m in a.members|slice:"1:" %}
+                      <br>{{ m.name }}
+                    {% endfor %}
+                  {% endif %}
+                {% else %}
+                  {{ a.name }}
+                {% endif %}
+              </td>
+
+              <td>{{ a.team_size }}</td>
+              <td>{% if a.winner_rank %}{{ a.winner_rank }}{% else %}—{% endif %}</td>
+              <td class="muted">{{ a.winner_note|default:"" }}</td>
+              <td>
+                <div style="display:flex; gap:6px; flex-wrap:wrap">
+                  <!-- Edit: open modal pre-filled -->
+                  <button
+                    class="btn"
+                    type="button"
+                    data-update-url="{% url 'eventapp:winners_update' a.pk %}"
+                    data-reg="{{ a.register_no }}"
+                    data-rank="{{ a.winner_rank|default:'' }}"
+                    data-note="{{ a.winner_note|default:''|escapejs }}"
+                    onclick="openEdit(this)"
+                  >✏️ Edit</button>
+
+                  <!-- Delete (unmark) -->
+                  <form method="post" action="{% url 'eventapp:winners_delete' a.pk %}" style="display:inline" onsubmit="return confirm('Remove {{ a.register_no }} from winners?')">
+                    {% csrf_token %}
+                    <button class="btn danger" type="submit">🗑️ Remove</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="9" class="muted">No winners yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Add Winner Modal -->
+  <div class="modal" id="addModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <strong>＋ Add Winner</strong>
+        <button class="btn" type="button" onclick="closeAdd()">Close</button>
+      </div>
+      <form method="post" action="{% url 'eventapp:winners_create' %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <label for="regAdd">Register No</label>
+          <input id="regAdd" name="register_no" placeholder="e.g., MUS001" required>
+
+          <div style="display:grid;grid-template-columns:1fr;gap:10px;margin-top:10px">
+            <div>
+              <label for="rankAdd">Rank (optional)</label>
+              <input id="rankAdd" name="winner_rank" type="number" min="1" placeholder="1 / 2 / 3 ...">
+            </div>
+            <div>
+              <label for="noteAdd">Note (optional)</label>
+              <input id="noteAdd" name="winner_note" maxlength="200" placeholder="Any notes (max 200 chars)">
+            </div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn" type="button" onclick="closeAdd()">Cancel</button>
+          <button class="btn brand" type="submit">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Winner Modal -->
+  <div class="modal" id="editModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <strong>✏️ Edit Winner</strong>
+        <button class="btn" type="button" onclick="closeEdit()">Close</button>
+      </div>
+      <form id="editForm" method="post">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div style="margin-bottom:8px">
+            <label>Register No</label>
+            <input id="regEdit" value="" readonly>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr;gap:10px">
+            <div>
+              <label for="rankEdit">Rank (optional)</label>
+              <input id="rankEdit" name="winner_rank" type="number" min="1" placeholder="1 / 2 / 3 ...">
+            </div>
+            <div>
+              <label for="noteEdit">Note (optional)</label>
+              <input id="noteEdit" name="winner_note" maxlength="200">
+            </div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn" type="button" onclick="closeEdit()">Cancel</button>
+          <button class="btn brand" type="submit">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // ----- Add modal -----
+    const addModal = document.getElementById('addModal');
+    function openAdd(){ addModal.classList.add('open'); }
+    function closeAdd(){ addModal.classList.remove('open'); }
+    addModal.addEventListener('click', e => { if(e.target === addModal) closeAdd(); });
+
+    // ----- Edit modal -----
+    const editModal = document.getElementById('editModal');
+    const editForm  = document.getElementById('editForm');
+    function openEdit(btn){
+      const url  = btn.dataset.updateUrl;
+      const reg  = btn.dataset.reg || '';
+      const rank = btn.dataset.rank || '';
+      const note = btn.dataset.note || '';
+
+      editForm.action = url;                 // POST to winners_update/<pk>/
+      document.getElementById('regEdit').value  = reg;
+      document.getElementById('rankEdit').value = rank;
+      document.getElementById('noteEdit').value = note;
+
+      editModal.classList.add('open');
+    }
+    function closeEdit(){ editModal.classList.remove('open'); }
+    editModal.addEventListener('click', e => { if(e.target === editModal) closeEdit(); });
+
+    // Esc key closes open modals
+    document.addEventListener('keydown', e => {
+      if(e.key === 'Escape'){
+        if(addModal.classList.contains('open')) closeAdd();
+        if(editModal.classList.contains('open')) closeEdit();
+      }
+    });
+  </script>
+</body>
+</html>

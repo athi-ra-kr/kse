@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#f7f8fc;display:flex;min-height:100vh;align-items:center;justify-content:center}
+    .card{width:380px;background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 24px 60px rgba(15,23,42,.12);padding:28px}
+    h2{margin:0 0 8px;color:#111827}
+    p{margin:0 0 16px;color:#6b7280}
+    .msg{padding:10px;border-radius:10px;margin-bottom:10px}
+    .msg.error{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+    label{display:block;margin:10px 0 6px;color:#111827}
+    input{width:100%;padding:12px;border:1px solid #e5e7eb;border-radius:10px}
+    button{width:100%;margin-top:14px;padding:12px;border:none;border-radius:12px;background:linear-gradient(135deg,#6366f1,#a855f7);color:#fff;font-weight:800}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Admin</h2>
+    <p>Sign in to manage applications</p>
+
+    {% if messages %}
+      {% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <label>Username</label>
+      <input name="username" required>
+      <label>Password</label>
+      <input type="password" name="password" required>
+      <button>Login</button>
+    </form>
+  </div>
+</body>
+</html>

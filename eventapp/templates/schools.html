@@ -1,0 +1,278 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Children’s Day — Schools</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root{
+      --bg:#f7f8fc; --surface:#ffffff; --text:#0f172a; --muted:#64748b; --border:#e5e7eb;
+      --brand1:#6366f1; --brand2:#a855f7; --danger:#ef4444; --shadow:0 10px 26px rgba(15,23,42,.06);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      color:var(--text);
+      background:
+        radial-gradient(900px 480px at 10% -10%, #eef2ff 0%, transparent 55%),
+        radial-gradient(700px 420px at 110% 10%, #f5f3ff 0%, transparent 50%),
+        var(--bg);
+      display:flex; min-height:100vh;
+    }
+
+    /* Sidebar (same as dashboard) */
+    .sidebar{
+      width:240px;background:var(--surface);border-right:1px solid var(--border);
+      display:flex;flex-direction:column;gap:12px;padding:20px;position:fixed;inset:0 auto 0 0;
+      box-shadow:2px 0 8px rgba(0,0,0,.03);
+    }
+    .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+    .brand .logo{font-size:22px}
+    .brand .title{
+      font-weight:800;background:linear-gradient(90deg,var(--brand1),var(--brand2));
+      -webkit-background-clip:text;background-clip:text;color:transparent
+    }
+    .nav h5{font-size:12px;color:#94a3b8;letter-spacing:.08em;text-transform:uppercase;margin:10px 0 6px}
+    .nav a{
+      display:flex;align-items:center;gap:10px;text-decoration:none;color:#374151;
+      padding:10px 12px;border-radius:10px;transition:.2s;
+    }
+    .nav a:hover,.nav a.active{background:#eef2ff;color:#4f46e5}
+    .logout{
+      margin-top:auto;text-align:center;text-decoration:none;padding:10px 12px;border-radius:10px;
+      background:#fff1f2;color:#b91c1c;border:1px solid #fecaca;transition:filter .2s;
+    }
+    .logout:hover{filter:brightness(1.02)}
+
+    /* Main (same as dashboard) */
+    .main{flex:1;margin-left:240px;padding:20px}
+    @media (max-width:900px){ .sidebar{display:none} .main{margin-left:0} }
+
+    .topbar{
+      background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 2px 8px rgba(15,23,42,.05);
+      padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;position:sticky;top:12px;z-index:10;
+    }
+    .search form{display:flex;gap:8px;align-items:center}
+    input[type="search"]{
+      width:280px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:#fff;
+    }
+    .btn{
+      display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;text-decoration:none;
+      padding:9px 12px;border-radius:10px;font-weight:700;font-size:14px;transition:filter .2s;
+    }
+    .btn.ghost{background:#fff;color:#111827;border:1px solid var(--border)}
+    .btn:hover{filter:brightness(1.05)}
+
+    .container{max-width:960px;margin:16px auto}
+    .msg{padding:10px 12px;border-radius:12px;border:1px solid var(--border);margin-bottom:12px}
+    .msg.success{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+    .msg.error{background:#fef2f2;color:#991b1b;border-color:#fecaca}
+
+    /* Card & Table (same as dashboard) */
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow)}
+    .card-header{
+      display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border);
+    }
+    .table-wrap{width:100%;overflow:auto;border-radius:0 0 14px 14px}
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    th,td{padding:12px 10px;border-bottom:1px solid #eef2f7;text-align:left;vertical-align:middle}
+    thead th{background:#f9fafb;color:#374151}
+    .muted{color:var(--muted)}
+
+    /* Icon & plus buttons */
+    .icon-btn{
+      display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;
+      border:1px solid var(--border);background:#fff;cursor:pointer;margin-right:6px;
+      transition:transform .12s, background .12s;
+    }
+    .icon-btn:hover{background:#f8fafc;transform:translateY(-1px)}
+    .icon{width:18px;height:18px;display:block}
+    .icon.edit path,.icon.trash path{
+      fill:none;stroke:#111827;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
+    }
+    .plus-btn{
+      display:inline-flex;align-items:center;justify-content:center;
+      width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:#ffffff;
+      color:#111827;font-size:20px;line-height:0;cursor:pointer;
+      transition:transform .12s, background .12s;
+    }
+    .plus-btn:hover{background:#f8fafc;transform:translateY(-1px)}
+
+    /* Modal (same style family) */
+    .modal{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.32);align-items:center;justify-content:center;padding:18px}
+    .modal.open{display:flex}
+    .modal-card{
+      width:min(560px, calc(100vw - 32px));
+      background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 20px 60px rgba(2,6,23,.18);overflow:hidden
+    }
+    .modal-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);background:#fff}
+    .modal-body{padding:14px}
+    .modal-actions{display:flex;gap:10px;justify-content:flex-end;padding:12px 14px;border-top:1px solid var(--border);background:#fff}
+    label{font-size:.9rem;color:#111827;display:block;margin-bottom:6px}
+    input[type="text"], textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px}
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+       <a href="#" class="logo">
+  <img src="https://www.kselimited.com/images/kselogo2.png" alt="KSE Logo" width="150" height="44">
+</a>
+    </div>
+    <nav class="nav">
+
+      <a href="{% url 'eventapp:dashboard' %}">Applications</a>
+      <a href="{% url 'eventapp:school_list' %}" class="active">Schools</a>
+
+      <a href="{% url 'eventapp:program_list' %}">Programmes</a>
+      <a href="{% url 'eventapp:banner_list' %}">Banner</a>
+        <a href="{% url 'eventapp:winners' %}">winners</a>
+    </nav>
+    <a class="logout" href="{% url 'eventapp:logout' %}">Logout</a>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="topbar">
+      <div class="row">
+        <strong style="font-size:1rem">🏫 Schools</strong>
+        <span class="muted" style="margin-left:8px">Manage school list</span>
+      </div>
+      <div class="row">
+        <div class="search">
+          <form method="get" action="">
+            <input type="search" name="q" placeholder="Search school..." value="{{ q|default:'' }}">
+            <button class="btn ghost" type="submit">Search</button>
+            <a class="btn ghost" href="{% url 'eventapp:school_list' %}">Reset</a>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      {% if messages %}
+        {% for m in messages %}
+          <div class="msg {{ m.tags }}">{{ m|safe }}</div>
+        {% endfor %}
+      {% endif %}
+
+      <div class="card">
+        <div class="card-header">
+          <div class="muted">All Schools ({{ schools|length }})</div>
+          <div style="display:flex;gap:8px">
+            <button class="plus-btn" title="Add School" onclick="openAdd()">+</button>
+            <a class="btn ghost" onclick="openBulk()" role="button">Bulk Add</a>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:60px">#</th>
+                <th>Name</th>
+                <th style="width:180px">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in schools %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>
+                  <!-- Inline edit -->
+                  <form method="post" action="{% url 'eventapp:school_update' s.pk %}" style="display:flex;gap:8px;align-items:center">
+                    {% csrf_token %}
+                    <input type="text" name="name" value="{{ s.name }}" required>
+                    <button class="btn ghost" type="submit" title="Save">Save</button>
+                  </form>
+                </td>
+                <td>
+                  <!-- Delete -->
+                  <form method="post" action="{% url 'eventapp:school_delete' s.pk %}" style="display:inline" onsubmit="return confirm('Delete {{ s.name }}?')">
+                    {% csrf_token %}
+                    <button class="icon-btn" type="submit" title="Delete" aria-label="Delete">
+                      <svg class="icon trash" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M6 7h12l-1 12H7L6 7zm3-3h6l1 1H8l1-1z" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                      </svg>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="3" class="muted">No schools yet. Use “+” to add or Bulk Add to paste a list.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Add School Modal -->
+  <div class="modal" id="addModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Add School</h3>
+        <button class="btn ghost" type="button" onclick="closeAdd()">Close</button>
+      </div>
+      <form method="post" action="{% url 'eventapp:school_create' %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <label for="sname">School name</label>
+          <input id="sname" type="text" name="name" placeholder="e.g., Govt. UP School, Mavelikkara" required>
+        </div>
+        <div class="modal-actions">
+          <button class="btn ghost" type="button" onclick="closeAdd()">Cancel</button>
+          <button class="btn ghost" type="submit">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Bulk Add Modal -->
+  <div class="modal" id="bulkModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Bulk Add Schools</h3>
+        <button class="btn ghost" type="button" onclick="closeBulk()">Close</button>
+      </div>
+      <form method="post" action="{% url 'eventapp:school_bulk_add' %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <label for="bulkarea">One school name per line</label>
+          <textarea id="bulkarea" name="bulk_names" rows="10" placeholder="School A&#10;School B&#10;School C"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn ghost" type="button" onclick="closeBulk()">Cancel</button>
+          <button class="btn ghost" type="submit">Add</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const addModal  = document.getElementById('addModal');
+    const bulkModal = document.getElementById('bulkModal');
+
+    function openAdd(){ addModal.classList.add('open'); document.body.classList.add('modal-open'); setTimeout(()=>document.getElementById('sname')?.focus(), 50); }
+    function closeAdd(){ addModal.classList.remove('open'); document.body.classList.remove('modal-open'); }
+
+    function openBulk(){ bulkModal.classList.add('open'); document.body.classList.add('modal-open'); setTimeout(()=>document.getElementById('bulkarea')?.focus(), 50); }
+    function closeBulk(){ bulkModal.classList.remove('open'); document.body.classList.remove('modal-open'); }
+
+    // Click outside to close
+    ;[addModal, bulkModal].forEach(m => m.addEventListener('click', e => {
+      if(e.target === m){ m.classList.remove('open'); document.body.classList.remove('modal-open'); }
+    }));
+
+    // ESC to close
+    document.addEventListener('keydown', e => {
+      if(e.key==='Escape'){ closeAdd(); closeBulk(); }
+    });
+  </script>
+</body>
+</html>

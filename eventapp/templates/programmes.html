@@ -1,0 +1,452 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Children’s Day — Programmes</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root{
+      --bg:#f7f8fc; --surface:#ffffff; --text:#0f172a; --muted:#64748b; --border:#e5e7eb;
+      --brand1:#6366f1; --brand2:#a855f7; --danger:#ef4444; --shadow:0 10px 26px rgba(15,23,42,.06);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      color:var(--text);
+      background:
+        radial-gradient(900px 480px at 10% -10%, #eef2ff 0%, transparent 55%),
+        radial-gradient(700px 420px at 110% 10%, #f5f3ff 0%, transparent 50%),
+        var(--bg);
+      display:flex; min-height:100vh;
+    }
+
+    /* Sidebar */
+    .sidebar{
+      width:240px;background:var(--surface);border-right:1px solid var(--border);
+      display:flex;flex-direction:column;gap:12px;padding:20px;position:fixed;inset:0 auto 0 0;
+      box-shadow:2px 0 8px rgba(0,0,0,.03);
+    }
+    .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+    .brand .logo{font-size:22px}
+    .brand .title{
+      font-weight:800;background:linear-gradient(90deg,var(--brand1),var(--brand2));
+      -webkit-background-clip:text;background-clip:text;color:transparent
+    }
+    .nav h5{font-size:12px;color:#94a3b8;letter-spacing:.08em;text-transform:uppercase;margin:10px 0 6px}
+    .nav a{
+      display:flex;align-items:center;gap:10px;text-decoration:none;color:#374151;
+      padding:10px 12px;border-radius:10px;transition:.2s;
+    }
+    .nav a:hover,.nav a.active{background:#eef2ff;color:#4f46e5}
+    .logout{
+      margin-top:auto;text-align:center;text-decoration:none;padding:10px 12px;border-radius:10px;
+      background:#fff1f2;color:#b91c1c;border:1px solid #fecaca;transition:filter .2s;
+    }
+    .logout:hover{filter:brightness(1.02)}
+
+    /* Main area */
+    .main{flex:1;margin-left:240px;padding:20px}
+    @media (max-width:900px){ .sidebar{display:none} .main{margin-left:0} }
+
+    .topbar{
+      background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 2px 8px rgba(15,23,42,.05);
+      padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;position:sticky;top:12px;z-index:10;
+      flex-wrap:wrap;
+    }
+    input[type="search"], select{
+      padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:#fff;
+    }
+    .btn{
+      display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;text-decoration:none;
+      padding:9px 12px;border-radius:10px;font-weight:700;font-size:14px;transition:filter .2s;
+    }
+    .btn.ghost{background:#fff;color:#111827;border:1px solid var(--border)}
+    .btn:hover{filter:brightness(1.05)}
+
+    .container{max-width:1200px;margin:16px auto}
+    .msg{padding:10px 12px;border-radius:12px;border:1px solid var(--border);margin-bottom:12px}
+    .msg.success{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+    .msg.error{background:#fef2f2;color:#991b1b;border-color:#fecaca}
+
+    /* Card & Table */
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow)}
+    .card-header{
+      display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border);
+    }
+    .table-wrap{width:100%;overflow:auto;border-radius:0 0 14px 14px;max-height:75vh}
+    table{width:100%;border-collapse:collapse;font-size:14px;min-width:1100px}
+    th,td{padding:12px 10px;border-bottom:1px solid #eef2f7;text-align:left;vertical-align:middle}
+    thead th{background:#f9fafb;color:#374151;position:sticky;top:0;z-index:5;border-bottom:2px solid #e5e7eb}
+    .muted{color:var(--muted)}
+    .wrap{white-space:normal}
+
+    /* Buttons / icons */
+    .plus-btn{
+      display:inline-flex;align-items:center;justify-content:center;
+      width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:#ffffff;
+      color:#111827;font-size:20px;line-height:0;cursor:pointer;transition:transform .12s, background .12s;
+    }
+    .plus-btn:hover{background:#f8fafc;transform:translateY(-1px)}
+
+    .icon-btn{
+      display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;
+      border:1px solid var(--border);background:#fff;cursor:pointer;margin-right:6px;transition:transform .12s, background .12s;
+    }
+    .icon-btn:hover{background:#f8fafc;transform:translateY(-1px)}
+    .icon{width:18px;height:18px;display:block}
+    .icon.edit path,.icon.trash path{
+      fill:none;stroke:#111827;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
+    }
+
+    /* Image preview */
+    .thumb{width:78px;height:52px;border-radius:8px;border:1px solid var(--border);object-fit:cover;background:#f3f4f6}
+
+    /* Modals (shared) */
+    .modal{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.32);align-items:center;justify-content:center;padding:18px}
+    .modal.open{display:flex}
+    .modal-card{width:min(720px, calc(100vw - 32px));background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 20px 60px rgba(2,6,23,.18);overflow:hidden}
+    .modal-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);background:#fff}
+    .modal-body{padding:14px}
+    .modal-actions{display:flex;gap:10px;justify-content:flex-end;padding:12px 14px;border-top:1px solid var(--border);background:#fff}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width:680px){ .grid{grid-template-columns:1fr} }
+    label{font-size:.9rem;color:#111827;display:block;margin-bottom:6px}
+    input[type="text"], textarea, select, input[type="date"], input[type="number"]{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px}
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <a href="#" class="logo">
+        <img src="https://www.kselimited.com/images/kselogo2.png" alt="KSE Logo" width="150" height="44">
+      </a>
+    </div>
+    <nav class="nav">
+      <a href="{% url 'eventapp:dashboard' %}">Applications</a>
+      <a href="{% url 'eventapp:school_list' %}">Schools</a>
+      <a href="{% url 'eventapp:program_list' %}" class="active">Programmes</a>
+      <a href="{% url 'eventapp:banner_list' %}" class="active">Banner</a>
+      <a href="{% url 'eventapp:winners' %}" class="active">Winners</a>
+    </nav>
+    <a class="logout" href="{% url 'eventapp:logout' %}">Logout</a>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="topbar">
+      <div class="row">
+        <strong style="font-size:1rem">🎨 Programmes</strong>
+        <span class="muted" style="margin-left:8px">Manage programme cards</span>
+      </div>
+      <div class="row" style="display:flex;gap:8px;align-items:center">
+        <form method="get" action="" id="catForm" style="display:flex;gap:8px;align-items:center">
+          <select name="cat" onchange="document.getElementById('catForm').submit()">
+            <option value="">All categories</option>
+            <option value="LKG" {% if request.GET.cat == 'LKG' %}selected{% endif %}>LKG</option>
+            <option value="UKG" {% if request.GET.cat == 'UKG' %}selected{% endif %}>UKG</option>
+            <option value="LP"  {% if request.GET.cat == 'LP'  %}selected{% endif %}>LP</option>
+            <option value="UP"  {% if request.GET.cat == 'UP'  %}selected{% endif %}>UP</option>
+            <option value="HS"  {% if request.GET.cat == 'HS'  %}selected{% endif %}>HS</option>
+          </select>
+          <input type="search" name="q" placeholder="Search programme..." value="{{ q|default:'' }}">
+          <button class="btn ghost" type="submit">Search</button>
+          <a class="btn ghost" href="{% url 'eventapp:program_list' %}">Reset</a>
+        </form>
+      </div>
+    </div>
+
+    <div class="container">
+      {% if messages %}
+        {% for m in messages %}
+          <div class="msg {{ m.tags }}">{{ m|safe }}</div>
+        {% endfor %}
+      {% endif %}
+
+      <div class="card">
+        <div class="card-header">
+          <div class="muted">All Programmes</div>
+          <button class="plus-btn" title="Add Programme" onclick="openAdd()">+</button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:60px">#</th>
+                <th style="width:110px">Category</th>
+                <th style="width:260px">Inline Edit</th>
+                <th class="wrap">Description</th>
+                <th style="width:140px">Applicants</th>
+                <th style="width:140px">Expiry date</th>
+                <th style="width:120px">Image</th>
+                <th style="width:180px">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in programs %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ p.category }}</td>
+                <td>
+                  <!-- Inline quick edit form -->
+                  <form method="post" action="{% url 'eventapp:program_update' p.pk %}" enctype="multipart/form-data" style="display:grid;grid-template-columns:1fr;gap:8px">
+                    {% csrf_token %}
+                    <input type="text" name="name" value="{{ p.name }}" required>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                      <select name="category" required>
+                        <option value="LKG" {% if p.category == 'LKG' %}selected{% endif %}>LKG</option>
+                        <option value="UKG" {% if p.category == 'UKG' %}selected{% endif %}>UKG</option>
+                        <option value="LP"  {% if p.category == 'LP'  %}selected{% endif %}>LP</option>
+                        <option value="UP"  {% if p.category == 'UP'  %}selected{% endif %}>UP</option>
+                        <option value="HS"  {% if p.category == 'HS'  %}selected{% endif %}>HS</option>
+                      </select>
+                      <input type="file" name="image" accept="image/*">
+                    </div>
+
+                    <!-- Applicants (min/max) + Expiry -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                      <input type="number" name="team_min" min="1" max="8" value="{{ p.team_min|default:1 }}" placeholder="Min" required>
+                      <input type="number" name="team_max" min="1" max="8" value="{{ p.team_max|default:8 }}" placeholder="Max" required>
+                    </div>
+                    <div>
+                      <input type="date" name="expiry_date" value="{{ p.expiry_date|date:'Y-m-d' }}">
+                    </div>
+
+                    <textarea name="description" rows="2" placeholder="Short description">{{ p.description }}</textarea>
+                    <div>
+                      <button class="btn ghost" type="submit" title="Save">Save</button>
+                    </div>
+                  </form>
+                </td>
+
+                <td class="wrap">{{ p.description|default:"" }}</td>
+
+                <!-- Values in column -->
+                <td>
+                  {% if p.team_min or p.team_max %}
+                    {{ p.team_min|default:"1" }}–{{ p.team_max|default:"8" }}
+                  {% else %}—{% endif %}
+                </td>
+                <td>
+                  {% if p.expiry_date %}
+                    {{ p.expiry_date|date:"d M Y" }}
+                  {% else %}—{% endif %}
+                </td>
+
+                <td>
+                  {% if p.image %}
+                    <img class="thumb" src="{{ p.image.url }}" alt="{{ p.name }}">
+                  {% else %}
+                    <div class="thumb" style="display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:12px">No image</div>
+                  {% endif %}
+                </td>
+
+                <td>
+                  <!-- Edit -->
+                  <button
+                    class="icon-btn" type="button" title="Edit"
+                    data-id="{{ p.pk }}"
+                    data-name="{{ p.name|escapejs }}"
+                    data-category="{{ p.category }}"
+                    data-description="{{ p.description|default:''|escapejs }}"
+                    data-team-min="{{ p.team_min|default:1 }}"
+                    data-team-max="{{ p.team_max|default:8 }}"
+                    data-expiry-date="{{ p.expiry_date|date:'Y-m-d' }}"
+                    data-update-url="{% url 'eventapp:program_update' p.pk %}"
+                    onclick="openEdit(this)">
+                    <svg class="icon edit" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                      <path d="M12 20h9" stroke-width="2" stroke="#111827" fill="none" stroke-linecap="round"/>
+                      <path d="M16.5 3.5l4 4L8 20H4v-4L16.5 3.5z" stroke-width="2" stroke="#111827" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+
+                  <!-- Delete -->
+                  <form method="post" action="{% url 'eventapp:program_delete' p.pk %}" style="display:inline" onsubmit="return confirm('Delete {{ p.name }}?')">
+                    {% csrf_token %}
+                    <button class="icon-btn" type="submit" title="Delete" aria-label="Delete">
+                      <svg class="icon trash" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M6 7h12l-1 12H7L6 7zm3-3h6l1 1H8l1-1z"/>
+                      </svg>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="8" class="muted">No programmes yet. Click “+” to add.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Add Programme Modal -->
+  <div class="modal" id="addModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="addTitle">
+      <div class="modal-head">
+        <h3 id="addTitle">＋ Add Programme</h3>
+        <button class="btn ghost" type="button" onclick="closeAdd()" aria-label="Close">Close</button>
+      </div>
+      <form method="post" action="{% url 'eventapp:program_create' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="grid">
+            <div>
+              <label>Category</label>
+              <select name="category" required>
+                <option value="">Select</option>
+                <option>LKG</option><option>UKG</option><option>LP</option><option>UP</option><option>HS</option>
+              </select>
+            </div>
+            <div>
+              <label>Programme Name</label>
+              <input type="text" name="name" placeholder="e.g., LKG Music" required>
+            </div>
+            <div style="grid-column:1 / -1">
+              <label>Description</label>
+              <textarea name="description" rows="3" placeholder="Short public description (shown on index)"></textarea>
+            </div>
+            <div>
+              <label>Image</label>
+              <input type="file" name="image" accept="image/*">
+            </div>
+
+            <!-- Applicants (min/max) -->
+            <div class="row" style="gap:12px; grid-column:1 / -1; display:flex">
+              <div style="flex:1">
+                <label for="team_min">Applicants (min)</label>
+                <input type="number" id="team_min" name="team_min" value="1" min="1" max="8" required>
+              </div>
+              <div style="flex:1">
+                <label for="team_max">Applicants (max)</label>
+                <input type="number" id="team_max" name="team_max" value="8" min="1" max="8" required>
+              </div>
+            </div>
+
+            <div>
+              <label>Expiry date</label>
+              <input type="date" name="expiry_date">
+            </div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn ghost" type="button" onclick="closeAdd()">Cancel</button>
+          <button class="btn ghost" type="submit">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Programme Modal -->
+  <div class="modal" id="editModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+      <div class="modal-head">
+        <h3 id="editTitle">✏️ Edit Programme</h3>
+        <button class="btn ghost" type="button" onclick="closeEdit()" aria-label="Close">Close</button>
+      </div>
+
+      <form id="editForm" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="grid">
+            <div>
+              <label>Category</label>
+              <select name="category" id="editCategory" required>
+                <option value="">Select</option>
+                <option>LKG</option><option>UKG</option><option>LP</option><option>UP</option><option>HS</option>
+              </select>
+            </div>
+            <div>
+              <label>Programme Name</label>
+              <input type="text" name="name" id="editName" required>
+            </div>
+            <div style="grid-column:1 / -1">
+              <label>Description</label>
+              <textarea name="description" id="editDescription" rows="3"></textarea>
+            </div>
+            <div>
+              <label>Image (replace)</label>
+              <input type="file" name="image" accept="image/*">
+            </div>
+
+            <!-- Applicants (min/max) in Edit -->
+            <div class="row" style="gap:12px; grid-column:1 / -1; display:flex">
+              <div style="flex:1">
+                <label for="editTeamMin">Applicants (min)</label>
+                <input type="number" id="editTeamMin" name="team_min" min="1" max="8" required>
+              </div>
+              <div style="flex:1">
+                <label for="editTeamMax">Applicants (max)</label>
+                <input type="number" id="editTeamMax" name="team_max" min="1" max="8" required>
+              </div>
+            </div>
+
+            <div>
+              <label>Expiry date</label>
+              <input type="date" name="expiry_date" id="editExpiryDate">
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn ghost" type="button" onclick="closeEdit()">Cancel</button>
+          <button class="btn ghost" type="submit">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // ----- Add Modal -----
+    const addModal = document.getElementById('addModal');
+    function openAdd(){ addModal.classList.add('open'); document.body.classList.add('modal-open'); }
+    function closeAdd(){ addModal.classList.remove('open'); document.body.classList.remove('modal-open'); }
+    addModal.addEventListener('click', e => { if(e.target === addModal) closeAdd(); });
+
+    // ----- Edit Modal -----
+    const editModal = document.getElementById('editModal');
+    const editForm  = document.getElementById('editForm');
+
+    function openEdit(btn){
+      const name = btn.dataset.name || '';
+      const cat  = btn.dataset.category || '';
+      const desc = btn.dataset.description || '';
+      const tmin = btn.dataset.teamMin || '1';
+      const tmax = btn.dataset.teamMax || '8';
+      const exp  = btn.dataset.expiryDate || '';
+      const updateUrl = btn.dataset.updateUrl;
+
+      editForm.action = updateUrl;
+      document.getElementById('editName').value = name;
+      document.getElementById('editCategory').value = cat;
+      document.getElementById('editDescription').value = desc;
+
+      document.getElementById('editTeamMin').value = String(tmin);
+      document.getElementById('editTeamMax').value = String(tmax);
+      document.getElementById('editExpiryDate').value = exp;
+
+      editModal.classList.add('open');
+      document.body.classList.add('modal-open');
+    }
+    function closeEdit(){
+      editModal.classList.remove('open');
+      document.body.classList.remove('modal-open');
+      editForm.reset();
+    }
+    editModal.addEventListener('click', e => { if(e.target === editModal) closeEdit(); });
+
+    // Esc closes whichever is open
+    document.addEventListener('keydown', e => {
+      if(e.key === 'Escape'){
+        if(addModal.classList.contains('open')) closeAdd();
+        if(editModal.classList.contains('open')) closeEdit();
+      }
+    });
+  </script>
+</body>
+</html>
