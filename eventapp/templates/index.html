@@ -336,6 +336,7 @@
                 <div class="expiry-badge">Expiry date {{ p.expiry_date|date:"d M Y" }}</div>
                 {% endif %}
               {% endif %}
+              <!-- FIX: Button text now consistent "Apply Now" (unless expired) -->
               <button class="apply-btn{% if p.is_expired %} disabled{% endif %}"
                 {% if not p.is_expired %}
                   onclick="applyProgram(
@@ -347,7 +348,7 @@
                     '{{ p.expiry_date|date:"Y-m-d"|default_if_none:'' }}'
                   )"
                 {% else %}disabled aria-disabled="true"{% endif %}
-              >{% if p.is_expired %}Closed{% else %}Expiry date{% endif %}</button>
+              >{% if p.is_expired %}Closed{% else %}Apply Now{% endif %}</button>
             </div>
           </div>
           {% endfor %}

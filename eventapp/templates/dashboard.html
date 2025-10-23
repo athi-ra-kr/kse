@@ -215,10 +215,10 @@
          class="{% if request.resolver_match.url_name == 'program_list' %}active{% endif %}">
          Programmes
       </a>
-      <a href="{% url 'eventapp:banner_list' %}"
+      <!-- <a href="{% url 'eventapp:banner_list' %}"
          class="{% if request.resolver_match.url_name == 'banner_list' %}active{% endif %}">
          Banner
-      </a>
+      </a> -->
       <a href="{% url 'eventapp:winners' %}" class="{% if request.resolver_match.url_name == 'winners' %}active{% endif %}">Winners</a>
     </nav>
 
