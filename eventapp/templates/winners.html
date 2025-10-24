@@ -1,88 +1,123 @@
 {% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <title>Winners</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
-      --border:#e5e7eb;--surface:#fff;--bg:#f7f8fc;--muted:#64748b;--text:#0f172a;
-      --shadow:0 10px 26px rgba(15,23,42,.06);
+      --bg:#f7f8fc; --surface:#ffffff; --text:#0f172a; --muted:#64748b; --border:#e5e7eb;
+      --brand1:#6366f1; --brand2:#a855f7; --danger:#ef4444; --shadow:0 10px 26px rgba(15,23,42,.06);
     }
-    *{box-sizing:border-box}
-    body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial;background:var(--bg);margin:0;color:var(--text)}
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      color:var(--text);
+      background:
+        radial-gradient(900px 480px at 10% -10%, #eef2ff 0%, transparent 55%),
+        radial-gradient(700px 420px at 110% 10%, #f5f3ff 0%, transparent 50%),
+        var(--bg);
+      display:flex; min-height:100vh;
+    }
     a{text-decoration:none;color:inherit}
 
-    /* Sidebar */
+    /* Sidebar (same as no1) */
     .sidebar{
       width:240px;background:var(--surface);border-right:1px solid var(--border);
-      position:fixed;inset:0 auto 0 0;padding:20px
+      display:flex;flex-direction:column;gap:12px;padding:20px;position:fixed;inset:0 auto 0 0;
+      box-shadow:2px 0 8px rgba(0,0,0,.03);
     }
-    .logo{display:block;margin-bottom:12px}
-    .nav a{display:block;padding:10px 12px;border-radius:10px;color:#111827;margin-bottom:6px}
-    .nav a.active,.nav a:hover{background:#eef2ff;color:#4f46e5}
+    .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+    .brand .logo img{display:block}
+    .nav a{
+      display:flex;align-items:center;gap:10px;text-decoration:none;color:#374151;
+      padding:10px 12px;border-radius:10px;transition:.2s;
+    }
+    .nav a:hover,.nav a.active{background:#eef2ff;color:#4f46e5}
+    .logout{
+      margin-top:auto;text-align:center;text-decoration:none;padding:10px 12px;border-radius:10px;
+      background:#fff1f2;color:#b91c1c;border:1px solid #fecaca;transition:filter .2s;
+    }
+    .logout:hover{filter:brightness(1.02)}
 
-    /* Main/top bar */
-    .main{margin-left:240px;padding:20px}
-    .top{
-      background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px;
-      display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap
+    /* Main/topbar (same style tokens as no1) */
+    .main{flex:1;margin-left:240px;padding:20px}
+    @media (max-width:900px){ .sidebar{display:none} .main{margin-left:0} }
+
+    .topbar{
+      background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 2px 8px rgba(15,23,42,.05);
+      padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;position:sticky;top:12px;z-index:10;
+      flex-wrap:wrap;
     }
-    .muted{color:var(--muted)}
+    input[type="search"], input[type="number"], input[type="text"]{
+      padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:#fff;
+    }
     .btn{
-      padding:8px 12px;border:1px solid var(--border);border-radius:10px;background:#fff;display:inline-flex;align-items:center;gap:6px;font-weight:600;cursor:pointer
+      display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;text-decoration:none;
+      padding:9px 12px;border-radius:10px;font-weight:700;font-size:14px;transition:filter .2s;background:#fff;border:1px solid var(--border);color:#111827;
     }
+    .btn:hover{filter:brightness(1.05)}
     .btn.brand{border-color:#c7d2fe;background:#eef2ff;color:#3730a3}
     .btn.danger{border-color:#fecaca;background:#fef2f2;color:#991b1b}
-    input[type="search"]{padding:8px 12px;border:1px solid var(--border);border-radius:10px}
 
-    /* Table card */
-    .card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow)}
-    .table-wrap{overflow:auto;border-radius:12px}
-    table{width:100%;border-collapse:collapse;min-width:1100px}
+    .container{max-width:1200px;margin:16px auto}
+    .msg{padding:10px 12px;border-radius:12px;border:1px solid var(--border);margin-bottom:12px}
+    .msg.success{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+    .msg.error{background:#fef2f2;color:#991b1b;border-color:#fecaca}
+
+    /* Card & Table (match no1) */
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow)}
+    .table-wrap{width:100%;overflow:auto;border-radius:0 0 14px 14px;max-height:75vh}
+    table{width:100%;border-collapse:collapse;font-size:14px;min-width:1100px}
     th,td{padding:12px 10px;border-bottom:1px solid #eef2f7;text-align:left;vertical-align:middle}
-    thead th{background:#f9fafb}
-
-    /* Make long member lists wrap nicely */
+    thead th{background:#f9fafb;color:#374151;position:sticky;top:0;z-index:5;border-bottom:2px solid #e5e7eb}
     .wrap{white-space:normal; line-height:1.4}
+    .muted{color:var(--muted)}
 
-    /* Modal */
-    .modal{display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.4);align-items:center;justify-content:center;padding:18px}
+    /* Modals (same structure as no1) */
+    .modal{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.32);align-items:center;justify-content:center;padding:18px}
     .modal.open{display:flex}
-    .modal-card{width:min(560px,96vw);background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 20px 60px rgba(2,6,23,.18);overflow:hidden}
-    .modal-head,.modal-actions{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);background:#fff}
-    .modal-actions{border-top:1px solid var(--border);border-bottom:none;justify-content:flex-end;gap:8px}
+    .modal-card{width:min(560px, calc(100vw - 32px));background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 20px 60px rgba(2,6,23,.18);overflow:hidden}
+    .modal-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);background:#fff}
     .modal-body{padding:14px}
+    .modal-actions{display:flex;gap:10px;justify-content:flex-end;padding:12px 14px;border-top:1px solid var(--border);background:#fff}
     label{display:block;font-size:.9rem;margin-bottom:6px}
     input, textarea, select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px}
   </style>
 </head>
 <body>
+
   <!-- Sidebar -->
   <aside class="sidebar">
-    <a href="#" class="logo">
-      <img src="{% static 'image/kselogo2.png' %}" alt="KSE Logo" width="150" height="44">
-    </a>
+    <div class="brand">
+      <a href="#" class="logo">
+        <img src="https://www.kselimited.com/images/kselogo2.png" alt="KSE Logo" width="150" height="44">
+      </a>
+    </div>
     <nav class="nav">
-      <a href="{% url 'eventapp:dashboard' %}">Applications</a>
-      <a href="{% url 'eventapp:school_list' %}">Schools</a>
-      <a href="{% url 'eventapp:program_list' %}">Programmes</a>
-      <!-- <a href="{% url 'eventapp:banner_list' %}">Banner</a> -->
-      <a href="{% url 'eventapp:winners' %}" class="active">Winners</a>
+      <a href="{% url 'eventapp:dashboard' %}"
+         class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">Applications</a>
+      <a href="{% url 'eventapp:school_list' %}"
+         class="{% if request.resolver_match.url_name == 'school_list' %}active{% endif %}">Schools</a>
+      <a href="{% url 'eventapp:program_list' %}"
+         class="{% if request.resolver_match.url_name == 'program_list' %}active{% endif %}">Programmes</a>
+      <a href="{% url 'eventapp:winners' %}"
+         class="{% if request.resolver_match.url_name == 'winners' %}active{% endif %}">Winners</a>
     </nav>
-    <a class="btn" href="{% url 'eventapp:logout' %}" style="margin-top:12px;display:inline-block">Logout</a>
+    <a class="logout" href="{% url 'eventapp:logout' %}">Logout</a>
   </aside>
 
   <!-- Main -->
   <main class="main">
-    <div class="top">
-      <div>
+    <div class="topbar">
+      <div class="row">
         <strong style="font-size:1rem">🏆 Winners</strong>
-        <span class="muted" style="margin-left:6px">Manage submissions marked as winners</span>
+        <span class="muted" style="margin-left:8px">Manage submissions marked as winners</span>
       </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <form method="get" action="">
+      <div class="row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <form method="get" action="" style="display:flex;gap:8px;align-items:center">
           <input type="search" name="q" value="{{ q|default:'' }}" placeholder="Search reg no / name / school">
           <button class="btn" type="submit">Search</button>
           <a class="btn" href="{% url 'eventapp:winners' %}">Reset</a>
@@ -92,79 +127,81 @@
       </div>
     </div>
 
-    {% if messages %}
-      {% for m in messages %}
-        <div class="card" style="padding:10px 12px;margin-bottom:10px">{{ m|safe }}</div>
-      {% endfor %}
-    {% endif %}
+    <div class="container">
+      {% if messages %}
+        {% for m in messages %}
+          <div class="msg {{ m.tags }}">{{ m|safe }}</div>
+        {% endfor %}
+      {% endif %}
 
-    <div class="card">
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Register No</th>
-              <th>Programme</th>
-              <th>School</th>
-              <th class="wrap">Team Members</th> <!-- CHANGED: show all names -->
-              <th>Team Size</th>
-              <th>Rank</th>
-              <th>Note</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for a in winners %}
-            <tr>
-              <td>{{ forloop.counter }}</td>
-              <td><strong>{{ a.register_no }}</strong></td>
-              <td>{{ a.program_name }}</td>
-              <td>{{ a.school.name }}</td>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:60px">#</th>
+                <th style="width:160px">Register No</th>
+                <th style="width:220px">Programme</th>
+                <th style="width:240px">School</th>
+                <th class="wrap">Team Members</th>
+                <th style="width:100px">Team Size</th>
+                <th style="width:90px">Rank</th>
+                <th style="width:220px">Note</th>
+                <th style="width:200px">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for a in winners %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td><strong>{{ a.register_no }}</strong></td>
+                <td>{{ a.program_name }}</td>
+                <td>{{ a.school.name }}</td>
 
-              <!-- ALL MEMBER NAMES -->
-              <td class="wrap">
-                {% if a.members and a.members.0 %}
-                  {{ a.members.0.name }}
-                  {% if a.members|length > 1 %}
-                    {% for m in a.members|slice:"1:" %}
-                      <br>{{ m.name }}
-                    {% endfor %}
+                <!-- ALL MEMBER NAMES -->
+                <td class="wrap">
+                  {% if a.members and a.members.0 %}
+                    {{ a.members.0.name }}
+                    {% if a.members|length > 1 %}
+                      {% for m in a.members|slice:"1:" %}
+                        <br>{{ m.name }}
+                      {% endfor %}
+                    {% endif %}
+                  {% else %}
+                    {{ a.name }}
                   {% endif %}
-                {% else %}
-                  {{ a.name }}
-                {% endif %}
-              </td>
+                </td>
 
-              <td>{{ a.team_size }}</td>
-              <td>{% if a.winner_rank %}{{ a.winner_rank }}{% else %}—{% endif %}</td>
-              <td class="muted">{{ a.winner_note|default:"" }}</td>
-              <td>
-                <div style="display:flex; gap:6px; flex-wrap:wrap">
-                  <!-- Edit: open modal pre-filled -->
-                  <button
-                    class="btn"
-                    type="button"
-                    data-update-url="{% url 'eventapp:winners_update' a.pk %}"
-                    data-reg="{{ a.register_no }}"
-                    data-rank="{{ a.winner_rank|default:'' }}"
-                    data-note="{{ a.winner_note|default:''|escapejs }}"
-                    onclick="openEdit(this)"
-                  >✏️ Edit</button>
+                <td>{{ a.team_size }}</td>
+                <td>{% if a.winner_rank %}{{ a.winner_rank }}{% else %}—{% endif %}</td>
+                <td class="muted">{{ a.winner_note|default:"" }}</td>
+                <td>
+                  <div style="display:flex; gap:8px; flex-wrap:wrap">
+                    <!-- Edit: open modal pre-filled -->
+                    <button
+                      class="btn"
+                      type="button"
+                      data-update-url="{% url 'eventapp:winners_update' a.pk %}"
+                      data-reg="{{ a.register_no }}"
+                      data-rank="{{ a.winner_rank|default:'' }}"
+                      data-note="{{ a.winner_note|default:''|escapejs }}"
+                      onclick="openEdit(this)"
+                    >✏️ Edit</button>
 
-                  <!-- Delete (unmark) -->
-                  <form method="post" action="{% url 'eventapp:winners_delete' a.pk %}" style="display:inline" onsubmit="return confirm('Remove {{ a.register_no }} from winners?')">
-                    {% csrf_token %}
-                    <button class="btn danger" type="submit">🗑️ Remove</button>
-                  </form>
-                </div>
-              </td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="9" class="muted">No winners yet.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
+                    <!-- Delete (unmark) -->
+                    <form method="post" action="{% url 'eventapp:winners_delete' a.pk %}" style="display:inline" onsubmit="return confirm('Remove {{ a.register_no }} from winners?')">
+                      {% csrf_token %}
+                      <button class="btn danger" type="submit">🗑️ Remove</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="9" class="muted">No winners yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </main>
@@ -180,7 +217,7 @@
         {% csrf_token %}
         <div class="modal-body">
           <label for="regAdd">Register No</label>
-          <input id="regAdd" name="register_no" placeholder="e.g., MUS001" required>
+          <input id="regAdd" name="register_no" placeholder="e.g., HS-MUS001" required>
 
           <div style="display:grid;grid-template-columns:1fr;gap:10px;margin-top:10px">
             <div>
@@ -250,7 +287,7 @@
       const rank = btn.dataset.rank || '';
       const note = btn.dataset.note || '';
 
-      editForm.action = url;                 // POST to winners_update/<pk>/
+      editForm.action = url;
       document.getElementById('regEdit').value  = reg;
       document.getElementById('rankEdit').value = rank;
       document.getElementById('noteEdit').value = note;

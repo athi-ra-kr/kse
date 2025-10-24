@@ -11,3 +11,11 @@ static/
 
 # Env / secrets
 .env
+__pycache__/
+*.pyc
+venv/
+db.sqlite3
+media/
+static/
+staticfiles/
+.env
