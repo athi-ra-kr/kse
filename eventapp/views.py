@@ -1,4 +1,3 @@
-# eventapp/views.py
 from __future__ import annotations
 
 from typing import Tuple
@@ -13,7 +12,7 @@ from django.http import HttpResponseForbidden, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from .models import Application, Banner, Programme, School
+from .models import Application, Banner, Programme, RegisterCounter, School
 
 
 # -----------------------------
@@ -44,8 +43,8 @@ def _clamp(n: int, lo: int, hi: int) -> int:
 
 def _split_program_name(program_name: str) -> Tuple[str, str]:
     """
-    Application.program_name is like "LKG Dance".
-    Returns ("LKG", "Dance"). If it can't, returns ("", program_name).
+    "KG Dance" -> ("KG", "Dance")
+    Legacy "LKG Dance"/"UKG Dance" -> ("LKG"/"UKG", "Dance")
     """
     s = (program_name or "").strip()
     if not s:
@@ -58,14 +57,19 @@ def _split_program_name(program_name: str) -> Tuple[str, str]:
 
 def _team_bounds_for_program(program_name: str) -> tuple[int, int]:
     """
-    Use Programme.team_min/team_max for the matching programme.
-    Falls back to 1..5 (cap for public apply/edit) to match your current rules.
+    Pull Programme.team_min/team_max for the matching programme, with a
+    fallback to (1..5).
+    Tries exact "category+name", then name only.
+    Also maps legacy LKG/UKG -> KG for lookup.
     """
     cat, nm = _split_program_name(program_name)
     q = Programme.objects
+    p = None
     if cat and nm:
         p = q.filter(category=cat, name=nm).only("team_min", "team_max").first()
-    else:
+        if not p and cat in {"LKG", "UKG"}:
+            p = q.filter(category="KG", name=nm).only("team_min", "team_max").first()
+    if not p:
         p = q.filter(name=program_name).only("team_min", "team_max").first()
 
     if p:
@@ -76,9 +80,6 @@ def _team_bounds_for_program(program_name: str) -> tuple[int, int]:
 
 
 def _parse_expiry(raw: str | None) -> datetime.date | None:
-    """
-    Accepts "YYYY-MM-DD" or "DD-MM-YYYY". Returns date or None.
-    """
     s = (raw or "").strip()
     if not s:
         return None
@@ -91,19 +92,17 @@ def _parse_expiry(raw: str | None) -> datetime.date | None:
 
 
 def _digits_only(s: str) -> str:
-    """Remove all non-digits."""
     return re.sub(r"\D+", "", s or "")
 
 
 def _validate_mobile_10(s: str) -> bool:
-    """True iff exactly 10 digits."""
     return bool(re.fullmatch(r"\d{10}", s or ""))
 
 
 def _flatten_members(app: Application) -> tuple[str, str, str]:
     """
-    Return comma-separated strings: (names, mobiles, alt_mobiles)
-    Safe against None/empty/malformed members JSON.
+    Legacy: returns names, mobiles, alts (comma-separated)
+    Kept for backward compatibility in any places still calling it.
     """
     names, mobiles, alts = [], [], []
     try:
@@ -112,13 +111,31 @@ def _flatten_members(app: Application) -> tuple[str, str, str]:
             mobiles.append((m.get("mobile") or "").strip())
             alts.append((m.get("alt") or "").strip())
     except Exception:
-        # Fallback to legacy single fields
         names = [app.name or ""]
         mobiles = [app.mobile or ""]
         alts = []
-    # Remove blank tails for cleaner CSV
     def _clean_join(items): return ", ".join([x for x in items if x])
     return _clean_join(names), _clean_join(mobiles), _clean_join(alts)
+
+
+def _flatten_members4(app: Application) -> tuple[str, str, str, str]:
+    """
+    NEW: returns names, mobiles, alts, sections (comma-separated)
+    """
+    names, mobiles, alts, sections = [], [], [], []
+    try:
+        for m in (app.members or []):
+            names.append((m.get("name") or "").strip())
+            mobiles.append((m.get("mobile") or "").strip())
+            alts.append((m.get("alt") or "").strip())
+            sections.append((m.get("section") or "").strip())
+    except Exception:
+        names = [app.name or ""]
+        mobiles = [app.mobile or ""]
+        alts = []
+        sections = []
+    def _clean_join(items): return ", ".join([x for x in items if x])
+    return _clean_join(names), _clean_join(mobiles), _clean_join(alts), _clean_join(sections)
 
 
 # -----------------------------
@@ -128,15 +145,16 @@ def index(request):
     banners = Banner.objects.filter(is_active=True).order_by("order", "id")
     first_banner = banners.first()
 
-    # Group active programmes for template
-    cats = ["LKG", "UKG", "LP", "UP", "HS"]
-    grouped = {c: [] for c in cats}
+    # Group active programmes for template (merge LKG/UKG into KG)
+    grouped = {"KG": [], "LP": [], "UP": [], "HS": []}
     qs = Programme.objects.filter(is_active=True).order_by("category", "order", "name")
     for p in qs:
-        if p.category in grouped:
-            grouped[p.category].append(p)
+        cat = p.category
+        if cat in {"KG", "LKG", "UKG"}:
+            grouped["KG"].append(p)
+        elif cat in grouped:
+            grouped[cat].append(p)
 
-    # ✅ Show "Winners" nav on index only if winners exist
     winners_count = Application.objects.filter(is_winner=True).count()
     has_winners = winners_count > 0
 
@@ -145,8 +163,8 @@ def index(request):
         "first_banner": first_banner,
         "programs_by_cat": grouped,
         "schools": School.objects.all().order_by("name"),
-        "has_winners": has_winners,         # use this in header to conditionally show Winners link
-        "winners_count": winners_count,     # optional badge/count
+        "has_winners": has_winners,
+        "winners_count": winners_count,
     }
     return render(request, "index.html", ctx)
 
@@ -208,6 +226,7 @@ def apply(request):
         n = (request.POST.get(f"members-{i}-name") or "").strip()
         m_raw = (request.POST.get(f"members-{i}-mobile") or "").strip()
         a_raw = (request.POST.get(f"members-{i}-alt") or "").strip()
+        s_raw = (request.POST.get(f"members-{i}-section") or "").strip()
 
         if not n or not m_raw:
             messages.error(request, f"Please fill Member {i+1} name and mobile.")
@@ -227,6 +246,9 @@ def apply(request):
                 return redirect("eventapp:index")
             rec["alt"] = a
 
+        if s_raw:
+            rec["section"] = s_raw
+
         members.append(rec)
 
     try:
@@ -245,12 +267,26 @@ def apply(request):
         messages.error(request, f"Something went wrong: {e}")
         return redirect("eventapp:index")
 
+    # ✅ Centered two-line message (mobile + desktop)
     messages.success(
         request,
-        f"✅ Application submitted for <b>{app.program_name}</b>. "
-        f"Your <b>Register No</b> is <b>{app.register_no}</b>.",
+        (
+            "<div style='text-align:center;width:100%;line-height:1.6;"
+            "display:flex;flex-direction:column;align-items:center;justify-content:center;"
+            "padding:8px 10px;'>"
+            f"<div style='font-size:1rem;font-weight:500;color:#111827;'>"
+            f"✅ Application submitted for <b>{app.program_name}</b>. "
+            f"Your <b>Register No</b> is <b>{app.register_no}</b>."
+            "</div>"
+            "<div style='margin-top:6px;font-size:1rem;font-weight:600;color:#111827;'>"
+            "Save this register number and report at KSE on program day."
+            "</div>"
+            "</div>"
+        )
     )
+
     return redirect("eventapp:index")
+
 
 
 # -----------------------------
@@ -270,7 +306,7 @@ def dashboard(request):
 
             if q:
                 ql = q.lower()
-                level_map = {"lkg": "LKG ", "ukg": "UKG ", "lp": "LP ", "up": "UP ", "hs": "HS "}
+                level_map = {"lkg": "LKG ", "ukg": "UKG ", "kg": "KG ", "lp": "LP ", "up": "UP ", "hs": "HS "}
                 if ql in level_map:
                     apps = apps.filter(program_name__istartswith=level_map[ql])
                 else:
@@ -302,16 +338,12 @@ def dashboard(request):
 
 
 def export_applications_csv(request):
-    """
-    Export all applications as a CSV file.
-    Now includes comma-separated lists of *all* member names, mobiles, and alt mobiles.
-    """
     if not request.session.get("is_logged_in"):
         return redirect("eventapp:adminlogin")
 
     response = HttpResponse(content_type="text/csv; charset=utf-8")
     response["Content-Disposition"] = 'attachment; filename="applications.csv"'
-    response.write("\ufeff")  # BOM for Excel
+    response.write("\ufeff")  # BOM for Excel compatibility
 
     writer = csv.writer(response)
     writer.writerow([
@@ -319,11 +351,12 @@ def export_applications_csv(request):
         "Primary Name", "Primary Mobile",
         "Team Size",
         "All Member Names", "All Member Mobiles", "All Member Alt Mobiles",
+        "All Member Sections",  # NEW
         "Submitted At",
     ])
 
     for app in Application.objects.select_related("school").order_by("submitted_at"):
-        all_names, all_mobiles, all_alts = _flatten_members(app)
+        all_names, all_mobiles, all_alts, all_sections = _flatten_members4(app)
         writer.writerow([
             app.register_no,
             app.program_name,
@@ -334,6 +367,7 @@ def export_applications_csv(request):
             all_names,
             all_mobiles,
             all_alts,
+            all_sections,  # NEW
             app.submitted_at.strftime("%Y-%m-%d %H:%M:%S"),
         ])
 
@@ -341,9 +375,6 @@ def export_applications_csv(request):
 
 
 def application_edit(request, pk):
-    """
-    Edit ALL details of an application, including every team member (strict 10-digit mobiles).
-    """
     if not _require_login(request):
         return redirect("eventapp:adminlogin")
 
@@ -351,12 +382,10 @@ def application_edit(request, pk):
     schools = School.objects.all().order_by("name")
 
     if request.method == "POST":
-        # Program + school
         app.program_name = (request.POST.get("program_name") or "").strip()
         school_id = (request.POST.get("school_id") or "").strip()
         app.school = get_object_or_404(School, pk=school_id)
 
-        # Team bounds from programme
         lo, hi = _team_bounds_for_program(app.program_name)
         try:
             team_size_i = _clamp(int(request.POST.get("team_size") or lo), lo, hi)
@@ -364,12 +393,12 @@ def application_edit(request, pk):
             messages.error(request, f"Team size must be a number between {lo} and {hi}.")
             return redirect("eventapp:application_edit", pk=app.pk)
 
-        # Read ALL members with strict 10-digit validation
         members = []
         for i in range(team_size_i):
             n = (request.POST.get(f"members-{i}-name") or "").strip()
             m_raw = (request.POST.get(f"members-{i}-mobile") or "").strip()
             a_raw = (request.POST.get(f"members-{i}-alt") or "").strip()
+            s_raw = (request.POST.get(f"members-{i}-section") or "").strip()  # NEW
 
             if not n or not m_raw:
                 messages.error(request, f"Please fill Member {i+1} name and mobile.")
@@ -389,12 +418,13 @@ def application_edit(request, pk):
                     return redirect("eventapp:application_edit", pk=app.pk)
                 rec["alt"] = a
 
+            if s_raw:
+                rec["section"] = s_raw
+
             members.append(rec)
 
-        # Mirror from Member 1 to legacy fields
         app.name = members[0]["name"]
         app.mobile = members[0]["mobile"]
-
         app.team_size = team_size_i
         app.members = members
 
@@ -409,6 +439,7 @@ def application_edit(request, pk):
     return render(request, "application_edit.html", {"app": app, "schools": schools})
 
 
+@require_POST
 def application_delete(request, pk):
     if not _require_login(request):
         return redirect("eventapp:adminlogin")
@@ -418,6 +449,70 @@ def application_delete(request, pk):
     app = get_object_or_404(Application, pk=pk)
     app.delete()
     messages.success(request, f"Application {app.register_no} deleted.")
+    return redirect("eventapp:dashboard")
+
+
+# -----------------------------
+# Refresh / Reissue Register Number (single)
+# -----------------------------
+@require_POST
+def application_refresh_register_no(request, pk):
+    if not _require_login(request):
+        return redirect("eventapp:adminlogin")
+
+    app = get_object_or_404(Application, pk=pk)
+    try:
+        with transaction.atomic():
+            app.register_no = Application.next_register_no(app.program_name)
+            app.save(update_fields=["register_no"])
+        messages.success(request, f"🔁 Register No refreshed: <b>{app.register_no}</b>.")
+    except Exception as e:
+        messages.error(request, f"Could not refresh Register No: {e}")
+    return _redirect_next(request, "dashboard")
+
+
+# -----------------------------
+# Refresh All Register Numbers (global)
+# -----------------------------
+@require_POST
+def applications_refresh_register_all(request):
+    """
+    Re-sequence ALL register numbers to start at 001 per (LEVEL, PREFIX),
+    ordered by submitted_at, and update RegisterCounter accordingly.
+    """
+    if not _require_login(request):
+        return redirect("eventapp:adminlogin")
+
+    with transaction.atomic():
+        # 1) Temp unique codes to dodge unique collisions
+        apps = list(
+            Application.objects.select_for_update()
+            .order_by("submitted_at", "pk")
+        )
+        for a in apps:
+            a.register_no = f"TMP{a.pk:07d}"  # fits max_length=10
+            a.save(update_fields=["register_no"])
+
+        # 2) Reset counters
+        RegisterCounter.objects.all().update(current=0)
+
+        # 3) Assign final per (LEVEL, PREFIX)
+        per_key_counts = {}   # key = "LEVEL-PREFIX"
+        for a in apps:
+            level = Application.level_for_program(a.program_name)
+            prefix = Application.prefix_for_program(a.program_name)
+            key = f"{level}-{prefix}"
+            per_key_counts[key] = per_key_counts.get(key, 0) + 1
+            a.register_no = f"{level}-{prefix}{per_key_counts[key]:03d}"
+            a.save(update_fields=["register_no"])
+
+        # 4) Persist counters
+        for key, current in per_key_counts.items():
+            rc, _ = RegisterCounter.objects.select_for_update().get_or_create(prefix=key, defaults={"current": 0})
+            rc.current = current
+            rc.save(update_fields=["current"])
+
+    messages.success(request, "🔄 All register numbers refreshed from 001 per LEVEL+PREFIX.")
     return redirect("eventapp:dashboard")
 
 
@@ -568,7 +663,6 @@ def program_create(request):
     desc = (request.POST.get("description") or "").strip()
     image = request.FILES.get("image")
 
-    # team range (cap 1..8)
     try:
         team_min = max(1, int(request.POST.get("team_min") or 1))
     except ValueError:
@@ -611,11 +705,9 @@ def program_update(request, pk):
     program.name = (request.POST.get("name") or "").strip()
     program.description = (request.POST.get("description") or "").strip()
 
-    # Replace/upload image
     if request.FILES.get("image"):
         program.image = request.FILES.get("image")
 
-    # order / is_active
     order_raw = request.POST.get("order")
     if order_raw not in (None, ""):
         try:
@@ -625,7 +717,6 @@ def program_update(request, pk):
     if "is_active" in request.POST:
         program.is_active = (request.POST.get("is_active") == "on")
 
-    # team_min/team_max (cap 1..8)
     tmn = request.POST.get("team_min")
     if tmn not in (None, ""):
         try:
@@ -640,7 +731,6 @@ def program_update(request, pk):
         except ValueError:
             pass
 
-    # expiry date
     if "expiry_date" in request.POST:
         program.expiry_date = _parse_expiry(request.POST.get("expiry_date"))
 
@@ -668,7 +758,6 @@ def program_delete(request, pk):
 
 
 def program_edit_page(request, pk):
-    """Dedicated edit page with image replace/remove."""
     if not _require_login(request):
         return redirect("eventapp:adminlogin")
 
@@ -679,7 +768,6 @@ def program_edit_page(request, pk):
         p.category = (request.POST.get("category") or "").strip()
         p.description = (request.POST.get("description") or "").strip()
 
-        # Optional extras on the edit page
         try:
             p.order = int(request.POST.get("order") or p.order)
         except ValueError:
@@ -696,17 +784,14 @@ def program_edit_page(request, pk):
         except ValueError:
             pass
 
-        # expiry date
         if "expiry_date" in request.POST:
             p.expiry_date = _parse_expiry(request.POST.get("expiry_date"))
 
-        # Remove image checkbox
         if request.POST.get("image_remove") == "on":
             if p.image:
                 p.image.delete(save=False)
             p.image = None
 
-        # Replace/upload image
         if request.FILES.get("image"):
             p.image = request.FILES["image"]
 
@@ -801,7 +886,6 @@ def banner_delete(request, pk):
 # Winners
 # -----------------------------
 def winners(request):
-    """List winners with simple search."""
     if not request.session.get("is_logged_in"):
         return redirect("eventapp:adminlogin")
 
@@ -825,7 +909,6 @@ def winners(request):
 
 @require_POST
 def winners_create(request):
-    """Mark an application as winner by Register No, with optional rank/note."""
     if not request.session.get("is_logged_in"):
         return redirect("eventapp:adminlogin")
 
@@ -856,7 +939,6 @@ def winners_create(request):
 
 @require_POST
 def winners_update(request, pk):
-    """Edit rank/note for an existing winner."""
     if not request.session.get("is_logged_in"):
         return redirect("eventapp:adminlogin")
 
@@ -881,7 +963,6 @@ def winners_update(request, pk):
 
 @require_POST
 def winners_delete(request, pk):
-    """Unmark as winner (soft delete from winners list)."""
     if not request.session.get("is_logged_in"):
         return redirect("eventapp:adminlogin")
 
@@ -896,10 +977,6 @@ def winners_delete(request, pk):
 
 
 def winners_export(request):
-    """
-    Export winners as CSV, including columns with *all* member names,
-    mobiles, and alternate mobiles (comma-separated).
-    """
     if not request.session.get("is_logged_in"):
         return redirect("eventapp:adminlogin")
 
@@ -910,10 +987,9 @@ def winners_export(request):
         .order_by("winner_rank", "register_no")
     )
 
-    # Excel-friendly CSV (BOM)
     resp = HttpResponse(content_type="text/csv; charset=utf-8")
     resp["Content-Disposition"] = 'attachment; filename="winners.csv"'
-    resp.write("\ufeff")  # BOM
+    resp.write("\ufeff")
 
     w = csv.writer(resp)
     w.writerow([
@@ -921,11 +997,12 @@ def winners_export(request):
         "Primary Name", "Primary Mobile",
         "Team Size",
         "All Member Names", "All Member Mobiles", "All Member Alt Mobiles",
+        "All Member Sections",  # NEW
         "Winner Rank", "Winner Note", "Submitted",
     ])
 
     for a in qs:
-        all_names, all_mobiles, all_alts = _flatten_members(a)
+        all_names, all_mobiles, all_alts, all_sections = _flatten_members4(a)
         w.writerow([
             a.register_no,
             a.program_name,
@@ -936,6 +1013,7 @@ def winners_export(request):
             all_names,
             all_mobiles,
             all_alts,
+            all_sections,  # NEW
             a.winner_rank or "",
             a.winner_note or "",
             a.submitted_at.strftime("%Y-%m-%d %H:%M"),
@@ -944,9 +1022,6 @@ def winners_export(request):
     return resp
 
 
-
-# eventapp/views.py (at the end, replace your winnerslist with this)
-# eventapp/views.py
 def winnerslist(request):
     winners_qs = (
         Application.objects
@@ -954,11 +1029,5 @@ def winnerslist(request):
         .select_related("school")
         .order_by("winner_rank", "register_no")
     )
-    # ensure header shows the Winners link on this page
-    ctx = {
-        "winners": winners_qs,
-        "has_winners": True,
-    }
+    ctx = {"winners": winners_qs, "has_winners": True}
     return render(request, "winnerslist.html", ctx)
-
-

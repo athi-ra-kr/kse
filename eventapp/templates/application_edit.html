@@ -13,25 +13,31 @@
     .wrap{max-width:900px;margin:20px auto;padding:0 20px}
     .card{background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:0 10px 26px rgba(15,23,42,.06);padding:16px}
     label{display:block;margin:12px 0 6px}
-    input, select{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;font-size:16px}
+    input, select{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;font-size:16px;background:#fff}
     input:focus,select:focus{outline:none;border-color:#a5b4fc;box-shadow:0 0 0 2px #e0e7ff}
-    .row{display:flex;gap:10px;align-items:end}
+    .row{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
     .muted{color:var(--muted)}
     .btn{background:var(--brand);color:#fff;padding:10px 16px;border:none;border-radius:10px;cursor:pointer;font-weight:700}
     .btn.secondary{background:#6b7280}
-    .counter{display:flex;align-items:center;gap:10px;border:1px solid var(--border);padding:6px;border-radius:10px}
+    .counter{display:flex;align-items:center;gap:10px;border:1px solid var(--border);padding:6px;border-radius:10px;background:#fff}
     .icon-btn{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:#f8fafc;cursor:pointer}
     .members-title{margin:14px 0 8px;font-weight:800}
     .members-head{display:none}
     @media (min-width:641px){
       .members-head{
-        display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px;
+        display:grid;
+        grid-template-columns:1.2fr 0.8fr 1fr 1fr; /* Name | Class/Section | Phone | Alt */
+        gap:8px;
         background:#fff;border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:.85rem;font-weight:700
       }
     }
     .members-grid{display:grid;gap:12px}
     .member-card{border:1px solid var(--border);border-radius:10px;padding:10px;background:#fff}
-    .member-grid{display:grid;grid-template-columns:minmax(180px,1.2fr) minmax(220px,1fr) minmax(220px,1fr);gap:8px}
+    .member-grid{
+      display:grid;
+      grid-template-columns:minmax(180px,1.2fr) minmax(120px,0.8fr) minmax(200px,1fr) minmax(200px,1fr);
+      gap:8px
+    }
     @media (max-width:640px){.member-grid{grid-template-columns:1fr}}
     .is-invalid{border-color:var(--error)!important;box-shadow:0 0 0 2px rgba(239,68,68,.18)!important}
     .hint{font-size:.78rem;color:#6b7280;margin-top:4px}
@@ -59,9 +65,12 @@
         </select>
 
         <label>Program</label>
-        <select name="program_name" required>
+        <select id="program_select" name="program_name" required data-current="{{ app.program_name|escape }}">
           {% for code,label in app.PROGRAM_CHOICES %}
-            <option value="{{ code }}" {% if code == app.program_name %}selected{% endif %}>{{ label }}</option>
+            <option value="{{ code }}"
+              {% if code == app.program_name or label == app.program_name %}selected{% endif %}>
+              {{ label }}
+            </option>
           {% endfor %}
         </select>
 
@@ -69,7 +78,7 @@
         <div class="row">
           <div class="counter">
             <button type="button" class="icon-btn" id="decBtn" aria-label="Decrease">−</button>
-            <input type="number" id="team_size" name="team_size" step="1" min="2" max="8" value="{{ app.team_size|default:2 }}" required style="width:110px;text-align:center">
+            <input type="number" id="team_size" name="team_size" step="1" min="2" max="8" value="{{ app.team_size|default:2 }}" required style="width:110px;text-align:center;background:#fff">
             <button type="button" class="icon-btn" id="incBtn" aria-label="Increase">+</button>
           </div>
           <div class="muted">Edit all members below. Member 1 auto-fills the legacy primary.</div>
@@ -78,6 +87,7 @@
         <div class="members-title">Team Members</div>
         <div class="members-head" aria-hidden="true">
           <div>Name</div>
+          <div>Class / Section</div>
           <div>Phone (10 digits)</div>
           <div>Alt phone (optional)</div>
         </div>
@@ -87,7 +97,7 @@
         <input type="hidden" name="name" id="primary_name" value="{{ app.name }}">
         <input type="hidden" name="mobile" id="primary_mobile" value="{{ app.mobile }}">
 
-        <div style="margin-top:16px;display:flex;gap:10px">
+        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
           <button class="btn">Save</button>
           <a class="btn secondary" href="{% url 'eventapp:dashboard' %}">Cancel</a>
         </div>
@@ -104,7 +114,7 @@
   {% endif %}
 
   <script>
-    // Any 10-digit validation on the client (server also enforces)
+    // ===== Utilities =====
     const digitsOnly = s => (s||"").replace(/\D+/g,"");
     const PHONE_RE = /^\d{10}$/;
     const PHONE_MSG = "Enter a valid 10-digit mobile number";
@@ -121,23 +131,98 @@
       input.setCustomValidity(""); input.classList.remove("is-invalid"); input.removeAttribute("aria-invalid"); input.title=""; return true;
     }
 
+    // ===== Program select: robust preselect (code OR label) =====
+    (function(){
+      const sel = document.getElementById('program_select');
+      if(!sel) return;
+      const currentRaw = (sel.getAttribute('data-current') || '').trim();
+      if(!currentRaw) return;
+      const curLower = currentRaw.toLowerCase();
+      let matched = false;
+      for(const opt of sel.options){
+        const valMatch = (opt.value || '').trim().toLowerCase() === curLower;
+        const textMatch = (opt.text || '').trim().toLowerCase() === curLower;
+        if(valMatch || textMatch){
+          opt.selected = true;
+          matched = true;
+          break;
+        }
+      }
+      // Legacy fallback without "(legacy)" label
+      if(!matched){
+        const legacy = document.createElement('option');
+        legacy.value = currentRaw;
+        legacy.textContent = currentRaw;
+        legacy.selected = true;
+        sel.insertBefore(legacy, sel.firstChild);
+      }
+    })();
+
+    // ===== Elements =====
     const membersWrap = document.getElementById("membersWrap");
     const form = document.getElementById("editForm");
     const teamInput = document.getElementById("team_size");
     const incBtn = document.getElementById("incBtn");
     const decBtn = document.getElementById("decBtn");
+    const programSelect = document.getElementById("program_select");
 
-    let initialMembers = [];
-    try{ initialMembers = JSON.parse(document.getElementById("membersData").textContent || "[]"); }catch(e){ initialMembers = []; }
-    if(!Array.isArray(initialMembers) || initialMembers.length===0){
-      initialMembers = [{ name: "{{ app.name|escapejs }}", mobile: digitsOnly("{{ app.mobile|escapejs }}"), alt: "" }];
+    // ===== Load existing members safely =====
+    let initialMembersRaw = [];
+    try{
+      initialMembersRaw = JSON.parse(document.getElementById("membersData").textContent || "[]");
+    }catch(e){ initialMembersRaw = []; }
+
+    let initialMembers = Array.isArray(initialMembersRaw) ? initialMembersRaw.map(m => ({
+      name: (m && m.name) ? String(m.name) : "",
+      mobile: (m && m.mobile) ? digitsOnly(String(m.mobile)).slice(0,10) : "",
+      alt: (m && m.alt) ? digitsOnly(String(m.alt)).slice(0,10) : "",
+      section: (m && m.section) ? String(m.section) : ""
+    })) : [];
+
+    if(initialMembers.length === 0){
+      initialMembers = [{
+        name: "{{ app.name|escapejs }}",
+        mobile: digitsOnly("{{ app.mobile|escapejs }}"),
+        alt: "",
+        section: ""
+      }];
     }
 
-    function memberCardHTML(i, m){
+    // ===== Class/Section options =====
+    const SECTION_MAP = {
+      'KG' : ['Pre-KG','LKG','UKG'],
+      'LP' : ['1','2','3','4'],
+      'UP' : ['5','6','7'],
+      'HS' : ['8','9','10']
+    };
+
+    function deriveDisplayCategory(programValue){
+      // Expect "KG Dance" etc.; use first token
+      const raw = (programValue || '').trim();
+      const head = raw.split(' ')[0].toUpperCase();
+      if(head === 'LKG' || head === 'UKG') return 'KG';
+      if(['KG','LP','UP','HS'].includes(head)) return head;
+      return ''; // unknown -> no options
+    }
+
+    function getSectionOptionsForCurrentProgram(){
+      const cat = deriveDisplayCategory(programSelect?.value);
+      return SECTION_MAP[cat] || [];
+    }
+
+    function optionsHTML(opts){
+      return opts.map(o => `<option value="${o}">${o}</option>`).join('');
+    }
+
+    // ===== UI builders =====
+    function memberCardHTML(i, m, sectionOpts){
       const idx = i - 1;
       const nm = (m && m.name) || "";
-      const mb = (m && m.mobile) ? String(m.mobile).replace(/\D+/g,"").slice(0,10) : "";
-      const at = (m && m.alt) ? String(m.alt).replace(/\D+/g,"").slice(0,10) : "";
+      const mb = (m && m.mobile) || "";
+      const at = (m && m.alt) || "";
+      const sec = (m && m.section) || "";
+      // choose value: keep saved if present and in options; else first option; else blank
+      let selVal = sec && sectionOpts.includes(sec) ? sec : (sectionOpts[0] || "");
       return `
         <div class="member-card" id="member-card-${idx}">
           <div class="member-grid">
@@ -145,6 +230,14 @@
               <label for="members-${idx}-name">Full name</label>
               <input required id="members-${idx}-name" name="members-${idx}-name" value="${nm.replace(/"/g,'&quot;')}" autocomplete="name">
             </div>
+
+            <div>
+              <label for="members-${idx}-section">Class / Section</label>
+              <select required id="members-${idx}-section" name="members-${idx}-section" data-initial="${(sec||'').replace(/"/g,'&quot;')}">
+                ${optionsHTML(sectionOpts)}
+              </select>
+            </div>
+
             <div>
               <label for="members-${idx}-mobile">Phone</label>
               <input required id="members-${idx}-mobile" name="members-${idx}-mobile"
@@ -167,12 +260,24 @@
     function renderMembers(n){
       n = clamp(n);
       const cur = initialMembers.slice(0, n);
-      while(cur.length < n){ cur.push({name:"", mobile:"", alt:""}); }
+      while(cur.length < n){ cur.push({name:"", mobile:"", alt:"", section:""}); }
 
+      const sectionOpts = getSectionOptionsForCurrentProgram();
       let html = "";
-      for(let i=1;i<=n;i++){ html += memberCardHTML(i, cur[i-1]); }
+      for(let i=1;i<=n;i++){ html += memberCardHTML(i, cur[i-1], sectionOpts); }
       membersWrap.innerHTML = html;
 
+      // set section select value after insertion (preserve saved value if still valid)
+      membersWrap.querySelectorAll('select[id$="-section"]').forEach(sel=>{
+        const saved = sel.getAttribute('data-initial') || '';
+        if(saved && Array.from(sel.options).some(o => o.value === saved)){
+          sel.value = saved;
+        }else if(sel.options.length){
+          sel.value = sel.options[0].value;
+        }
+      });
+
+      // phone validation
       membersWrap.querySelectorAll('input[id$="-mobile"], input[id$="-alt"]').forEach(inp=>{
         enforcePhone(inp);
         inp.addEventListener("input", ()=>enforcePhone(inp));
@@ -180,17 +285,36 @@
       });
     }
 
-    // initial
-    renderMembers(teamInput.value || 2);
+    // ===== Initial: show ALL existing members =====
+    let desiredCount = clamp(teamInput.value || 2);
+    desiredCount = Math.max(desiredCount, initialMembers.length);
+    teamInput.value = String(desiredCount);
+    renderMembers(desiredCount);
 
-    // controls
+    // ===== Controls =====
     function updateMembers(){ teamInput.value = String(clamp(teamInput.value)); renderMembers(teamInput.value); }
     teamInput.addEventListener("input", updateMembers);
     teamInput.addEventListener("change", updateMembers);
     incBtn.addEventListener("click", ()=>{ teamInput.value = String(clamp((parseInt(teamInput.value||2,10)+1))); updateMembers(); });
     decBtn.addEventListener("click", ()=>{ teamInput.value = String(clamp((parseInt(teamInput.value||2,10)-1))); updateMembers(); });
 
-    // Mirror Member 1 to legacy hidden fields
+    // If program changes, refresh section options (preserve other fields)
+    programSelect.addEventListener('change', ()=>{
+      // before re-render, capture current text/phones/sections from DOM to keep user edits
+      const n = clamp(teamInput.value || 2);
+      const fresh = [];
+      for(let i=0;i<n;i++){
+        const name = document.getElementById(`members-${i}-name`)?.value || "";
+        const mobile = digitsOnly(document.getElementById(`members-${i}-mobile`)?.value || "");
+        const alt = digitsOnly(document.getElementById(`members-${i}-alt`)?.value || "");
+        const section = document.getElementById(`members-${i}-section`)?.value || "";
+        fresh.push({name, mobile, alt, section});
+      }
+      initialMembers = fresh;
+      renderMembers(n);
+    });
+
+    // ===== Mirror Member 1 to legacy hidden fields on submit =====
     form.addEventListener("submit", ()=>{
       const n = form.querySelector('input[name="members-0-name"]')?.value?.trim() || "";
       const m = digitsOnly(form.querySelector('input[name="members-0-mobile"]')?.value || "");

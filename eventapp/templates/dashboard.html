@@ -29,11 +29,7 @@
       box-shadow:2px 0 8px rgba(0,0,0,.03);
     }
     .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px}
-    .brand .logo{font-size:22px}
-    .brand .title{
-      font-weight:800;background:linear-gradient(90deg,var(--brand1),var(--brand2));
-      -webkit-background-clip:text;background-clip:text;color:transparent
-    }
+    .brand .logo img{display:block}
     .nav h5{font-size:12px;color:#94a3b8;letter-spacing:.08em;text-transform:uppercase;margin:10px 0 6px}
     .nav a{
       display:flex;align-items:center;gap:10px;text-decoration:none;color:#374151;
@@ -91,7 +87,7 @@
       width:100%;
       border-collapse:collapse;
       font-size:14px;
-      min-width:1080px;
+      min-width:1180px;
     }
     th,td{
       padding:12px 10px;
@@ -179,7 +175,7 @@
     .member-card .title{font-weight:700;margin-bottom:6px}
     .member-card .row{display:grid;grid-template-columns: 1fr;gap:10px}
     .member-card label{font-size:.9rem;color:#111827;display:block;margin-bottom:4px}
-    .member-card input{
+    .member-card input, .member-card select{
       width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;font-size:.98rem;background:#fff;
     }
 
@@ -215,11 +211,10 @@
          class="{% if request.resolver_match.url_name == 'program_list' %}active{% endif %}">
          Programmes
       </a>
-      <!-- <a href="{% url 'eventapp:banner_list' %}"
-         class="{% if request.resolver_match.url_name == 'banner_list' %}active{% endif %}">
-         Banner
-      </a> -->
-      <a href="{% url 'eventapp:winners' %}" class="{% if request.resolver_match.url_name == 'winners' %}active{% endif %}">Winners</a>
+      <a href="{% url 'eventapp:winners' %}"
+         class="{% if request.resolver_match.url_name == 'winners' %}active{% endif %}">
+         Winners
+      </a>
     </nav>
 
     <a class="logout" href="{% url 'eventapp:logout' %}">Logout</a>
@@ -256,10 +251,24 @@
           <button class="plus-btn" title="Add Application" onclick="openAddModal()">+</button>
         </div>
 
-        <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 14px;">
-          <a href="{% url 'eventapp:export_applications_csv' %}" class="btn btn-primary" style="padding:6px 12px;background:#2563eb;color:#fff;border-radius:6px;text-decoration:none;">
+        <!-- Export + Global refresh row -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 14px;gap:12px;flex-wrap:wrap">
+          <a href="{% url 'eventapp:export_applications_csv' %}"
+             class="btn btn-primary"
+             style="padding:6px 12px;background:#2563eb;color:#fff;border-radius:6px;text-decoration:none;">
             ⬇️ Export CSV
           </a>
+
+          <!-- ONE global refresh button -->
+          <form method="post"
+                action="{% url 'eventapp:applications_refresh_register_all' %}"
+                onsubmit="return confirm('This will re-sequence ALL register numbers per LEVEL+PREFIX from 001 in submission order. Continue?')">
+            {% csrf_token %}
+            <button type="submit" class="btn"
+                    style="padding:6px 12px;background:#10b981;color:#fff;border-radius:6px;">
+              🔄 Refresh All Register Nos
+            </button>
+          </form>
         </div>
 
         <div class="table-wrap">
@@ -272,7 +281,8 @@
                 <th class="wrap">School</th>
                 <th class="wrap">Team Names</th>
                 <th class="wrap">Team Mobiles</th>
-                <th class="wrap">Alt Mobiles</th><!-- NEW COLUMN -->
+                <th class="wrap">Alt Mobiles</th>
+                <th class="wrap">Team Sections</th> <!-- NEW -->
                 <th>Submitted</th>
                 <th>Actions</th>
               </tr>
@@ -314,7 +324,7 @@
                   {% endif %}
                 </td>
 
-                <!-- Alt Mobiles (NEW) -->
+                <!-- Alt Mobiles -->
                 <td class="wrap">
                   {% if a.members and a.members.0 %}
                     {% if a.members.0.alt %}{{ a.members.0.alt }}{% else %}—{% endif %}
@@ -324,7 +334,21 @@
                       {% endfor %}
                     {% endif %}
                   {% else %}
-                    —
+                    — 
+                  {% endif %}
+                </td>
+
+                <!-- NEW: Team Sections -->
+                <td class="wrap">
+                  {% if a.members and a.members.0 %}
+                    {% if a.members.0.section %}{{ a.members.0.section }}{% else %}—{% endif %}
+                    {% if a.members|length > 1 %}
+                      {% for m in a.members|slice:"1:" %}
+                        <br>{% if m.section %}{{ m.section }}{% else %}—{% endif %}
+                      {% endfor %}
+                    {% endif %}
+                  {% else %}
+                    — 
                   {% endif %}
                 </td>
 
@@ -346,7 +370,7 @@
                 </td>
               </tr>
             {% empty %}
-              <tr><td colspan="9" class="muted">No applications found{% if q %} for “{{ q }}”{% endif %}.</td></tr>
+              <tr><td colspan="10" class="muted">No applications found{% if q %} for “{{ q }}”{% endif %}.</td></tr>
             {% endfor %}
             </tbody>
           </table>
@@ -370,11 +394,11 @@
               <label for="qa_program">Program</label>
               <select id="qa_program" name="program_name" required>
                 <option value="">Select program</option>
-                <option>LKG Music</option><option>LKG Dance</option><option>LKG Drawing</option><option>LKG Group Dance</option>
-                <option>UKG Music</option><option>UKG Dance</option><option>UKG Drawing</option><option>UKG Group Dance</option>
-                <option>LP Music</option><option>LP Dance</option><option>LP Drawing</option><option>LP Group Dance</option>
-                <option>UP Music</option><option>UP Dance</option><option>UP Drawing</option><option>UP Group Dance</option>
-                <option>HS Music</option><option>HS Dance</option><option>HS Drawing</option><option>HS Group Dance</option>
+                <!-- Examples; free-text on server, but dropdown helps -->
+                <option>KG Music</option><option>KG Dance</option><option>KG Drawing</option><option>KG Elocution</option><option>KG Folk Dance</option><option>KG Cinematic Dance</option><option>KG Fancy Dress</option><option>KG Group Song</option>
+                <option>LP Music</option><option>LP Dance</option><option>LP Drawing</option><option>LP Elocution</option><option>LP Folk Dance</option><option>LP Cinematic Dance</option><option>LP Fancy Dress</option><option>LP Group Song</option>
+                <option>UP Music</option><option>UP Dance</option><option>UP Drawing</option><option>UP Elocution</option><option>UP Folk Dance</option><option>UP Cinematic Dance</option><option>UP Fancy Dress</option><option>UP Group Song</option>
+                <option>HS Music</option><option>HS Dance</option><option>HS Drawing</option><option>HS Elocution</option><option>HS Folk Dance</option><option>HS Cinematic Dance</option><option>HS Fancy Dress</option><option>HS Group Song</option>
               </select>
             </div>
 
@@ -423,9 +447,11 @@
       const form = addModal.querySelector('form');
       if (form) form.reset();
 
+      // sync options and render
+      syncSectionOptionsFromProgram();
       if (qaTeamInput){
-        qaTeamInput.value = 8;
-        renderMembers(8);
+        qaTeamInput.value = 2;
+        renderMembers(2);
       }
 
       addModal.classList.add('open');
@@ -438,14 +464,35 @@
     addModal.addEventListener('click', (e)=>{ if(e.target === addModal) closeAddModal(); });
     document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && addModal.classList.contains('open')) closeAddModal(); });
 
-    // ===== Dynamic members (2..8) =====
+    // ===== Dynamic members (2..8) + SECTION per member =====
     const qaTeamInput = document.getElementById('qa_team');
     const qaMembersWrap = document.getElementById('qa_membersWrap');
+    const qaProgram = document.getElementById('qa_program');
 
     function clampTeam(n){ return Math.max(2, Math.min(8, n)); }
-
-    // 10-digit only pattern
     const TEN_DIGITS = "^\\d{10}$";
+
+    const SECTION_MAP = {
+      'KG' : ['Pre-KG','LKG','UKG'],
+      'LP' : ['1','2','3','4'],
+      'UP' : ['5','6','7'],
+      'HS' : ['8','9','10']
+    };
+    let currentSectionOptions = [];
+
+    function getCategoryFromProgramLabel(label){
+      if(!label) return '';
+      const first = label.trim().split(/\s+/)[0].toUpperCase();
+      return (['KG','LP','UP','HS'].includes(first)) ? first : '';
+    }
+    function syncSectionOptionsFromProgram(){
+      const label = qaProgram?.value || '';
+      const cat = getCategoryFromProgramLabel(label);
+      currentSectionOptions = SECTION_MAP[cat] || [];
+    }
+    function optionsHTML(opts){
+      return opts.map(o=>`<option value="${o}">${o}</option>`).join('');
+    }
 
     function memberCard(i){
       const idx = i - 1;
@@ -457,6 +504,14 @@
               <label for="members-${idx}-name">Name</label>
               <input id="members-${idx}-name" type="text" name="members-${idx}-name" placeholder="Full name" required>
             </div>
+
+            <div>
+              <label for="members-${idx}-section">Class / Section</label>
+              <select id="members-${idx}-section" name="members-${idx}-section" required>
+                ${optionsHTML(currentSectionOptions)}
+              </select>
+            </div>
+
             <div>
               <label for="members-${idx}-mobile">Mobile</label>
               <input id="members-${idx}-mobile" type="tel" name="members-${idx}-mobile" placeholder="10 digits" pattern="${TEN_DIGITS}" maxlength="10" minlength="10" required>
@@ -475,13 +530,29 @@
       let html = '';
       for(let i=1; i<=n; i++){ html += memberCard(i); }
       qaMembersWrap.innerHTML = html;
+
+      // default select first option where applicable
+      if(currentSectionOptions.length){
+        qaMembersWrap.querySelectorAll('select[id$="-section"]').forEach(sel=>{
+          if(!sel.value){ sel.value = currentSectionOptions[0]; }
+        });
+      }
     }
 
     if(qaTeamInput && qaMembersWrap){
+      syncSectionOptionsFromProgram();
       renderMembers(parseInt(qaTeamInput.value || '2', 10));
       qaTeamInput.addEventListener('input', () => {
         let n = parseInt(qaTeamInput.value || '2', 10);
         if (isNaN(n)) n = 2;
+        renderMembers(n);
+      });
+    }
+
+    if(qaProgram){
+      qaProgram.addEventListener('change', () => {
+        syncSectionOptionsFromProgram();
+        const n = parseInt(qaTeamInput.value || '2', 10) || 2;
         renderMembers(n);
       });
     }

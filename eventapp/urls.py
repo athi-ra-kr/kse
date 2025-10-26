@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views
 
-app_name = "eventapp"   # <-- important so {% url 'eventapp:...' %} works
+app_name = "eventapp"
 
 urlpatterns = [
     path("", views.index, name="index"),
@@ -12,6 +12,10 @@ urlpatterns = [
     path("dashboard/", views.dashboard, name="dashboard"),
     path("applications/<int:pk>/edit/", views.application_edit, name="application_edit"),
     path("applications/<int:pk>/delete/", views.application_delete, name="application_delete"),
+
+    # single & bulk register-no refresh
+    path("applications/<int:pk>/refresh-regno/", views.application_refresh_register_no, name="application_refresh_register_no"),
+    path("applications/refresh-register-all/", views.applications_refresh_register_all, name="applications_refresh_register_all"),
 
     # schools
     path("schools/", views.school_list, name="school_list"),
@@ -33,14 +37,14 @@ urlpatterns = [
     path("banners/<int:pk>/update/", views.banner_update, name="banner_update"),
     path("banners/<int:pk>/delete/", views.banner_delete, name="banner_delete"),
 
+    # winners
     path("winners/", views.winners, name="winners"),
     path("winners/export/", views.winners_export, name="winners_export"),
     path("winners/create/", views.winners_create, name="winners_create"),
     path("winners/<int:pk>/update/", views.winners_update, name="winners_update"),
     path("winners/<int:pk>/delete/", views.winners_delete, name="winners_delete"),
-
-    # ✅ Excel export
-    path("dashboard/export/", views.export_applications_csv, name="export_applications_csv"),
     path("winnerslist/", views.winnerslist, name="winnerslist"),
 
+    # export
+    path("dashboard/export/", views.export_applications_csv, name="export_applications_csv"),
 ]

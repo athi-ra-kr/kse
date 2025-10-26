@@ -5,73 +5,101 @@
     <meta charset="UTF-8" />
     <link rel="icon" href="https://www.kselimited.com/ksefavicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#ffffff" />
     <title>Children's Day - Programs & Activities</title>
 
     <style>
-      /* ===== BASE / TOKENS (kept simple) ===== */
       :root{
-        --bg:#f7f8fc; --surface:#fff; --text:#0f172a; --border:#e5e7eb;
+        --bg:#ffffff; /* <-- MATCHED TO WHITE */
+        --surface:#ffffff; --text:#0f172a; --border:#e5e7eb;
         --brand1:#667eea; --brand2:#764ba2;
         --header-h:80px; --error:#ef4444;
       }
+
       *,*::before,*::after{box-sizing:border-box}
       html,body{height:100%}
-      html{scroll-behavior:smooth}
+      html{scroll-behavior:smooth; background:#ffffff} /* <-- white root */
       body{
-        margin:0; padding-top:0; /* carousel touches header */
-        font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial,"Apple Color Emoji","Segoe UI Emoji";
-        color:var(--text); background:var(--bg)
+        margin:0;
+        font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial;
+        color:var(--text);
+        background:#ffffff; /* <-- white body to avoid contrast seam */
+        overscroll-behavior:none;
+        -webkit-font-smoothing:antialiased;
+        -moz-osx-font-smoothing:grayscale;
+
+        /* offset for fixed header + safe area */
+        padding-top:calc(var(--header-h) + env(safe-area-inset-top, 0px));
       }
+
       img{max-width:100%; display:block}
       a{color:inherit; text-decoration:none}
       button{touch-action:manipulation}
 
-      /* ===== HEADER (sticky) ===== */
+      /* ===== Header (now fixed, no borders/shadows) ===== */
       header{
-        position: sticky; top:0; left:0; right:0; height:var(--header-h);
-        background:#fff; border-bottom:1px solid var(--border); z-index:1000
+        position:fixed;       /* <-- was sticky */
+        top:0; left:0; right:0;
+        height:calc(var(--header-h) + env(safe-area-inset-top, 0px));
+        background:#ffffff;
+        border:0;             /* kill border hairlines */
+        box-shadow:none;      /* avoid hairline from shadow */
+        z-index:3000;
       }
-      .header-container{max-width:1200px; margin:0 auto; height:100%; display:flex; align-items:center; justify-content:space-between; padding:15px 20px}
+      /* keep content centered inside header; push down below safe area */
+      .header-container{
+        max-width:1200px; margin:0 auto;
+        height:var(--header-h);
+        padding:calc(10px + env(safe-area-inset-top, 0px)) 20px 10px; /* top padding includes safe area */
+        display:flex; align-items:center; justify-content:space-between;
+      }
+
       .logo img{height:44px}
       nav[aria-label="Primary"]{display:flex; gap:24px}
       .mobile-menu-toggle{display:none; flex-direction:column; gap:5px; cursor:pointer; padding:5px}
       .mobile-menu-toggle span{width:25px; height:3px; background:#333}
+
       @media (max-width:768px){
         .mobile-menu-toggle{display:flex}
-        nav[aria-label="Primary"]{position:fixed; top:var(--header-h); left:0; right:0; background:#fff; flex-direction:column; gap:0; border-bottom:1px solid var(--border); max-height:0; overflow:hidden; transition:max-height .25s}
-        nav[aria-label="Primary"].active{max-height:320px}
-        nav[aria-label="Primary"] a{padding:14px 20px; border-top:1px solid var(--border)}
+        nav[aria-label="Primary"]{
+          position:fixed;
+          /* sit right under header (header includes safe area already) */
+          top:calc(var(--header-h) + env(safe-area-inset-top, 0px));
+          left:0; right:0;
+          background:#ffffff;
+          flex-direction:column; gap:0;
+          max-height:0; overflow:hidden; transition:max-height .25s ease;
+          border:0;           /* no borders = no lines */
+          box-shadow:none;    /* shadow can look like a line on some devices */
+          z-index:3200;
+        }
+        nav[aria-label="Primary"].active{
+          max-height:320px;
+          /* if you want separation, use very soft shadow; keep it off to be safe */
+          /* box-shadow:0 8px 22px rgba(15,23,42,.06); */
+        }
+        nav[aria-label="Primary"] a{
+          padding:14px 20px;
+          border:0; /* remove item borders to avoid hairline between items */
+        }
       }
 
-      /* ===== BANNER (TALLER CAROUSEL) ===== */
-      .banner-slider{
-        position:relative; width:100%;
-        /* Increased height: was clamp(320px, 55vh, 680px) */
-        height:clamp(380px, 70vh, 820px);
-        overflow:hidden
-      }
-      .banner-slide{position:absolute; inset:0; opacity:0; transition:opacity 0.8s; background-size:cover; background-position:center}
+      /* Banner */
+      .banner-slider{position:relative; width:100%; height:clamp(380px, 70vh, 820px); overflow:hidden; background:#fff}
+      .banner-slide{position:absolute; inset:0; opacity:0; transition:opacity .8s; background-size:cover; background-position:center}
       .banner-slide.active{opacity:1}
-      .banner-overlay{
-        position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.25) 30%, rgba(0,0,0,.35));
-        display:flex; align-items:center; justify-content:center; flex-direction:column; color:#fff; text-align:center; padding:24px
-      }
+      .banner-overlay{position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.25) 30%, rgba(0,0,0,.35)); display:flex; align-items:center; justify-content:center; flex-direction:column; color:#fff; text-align:center; padding:24px}
       .banner-overlay h2{font-size:clamp(1.4rem, 2.8vw, 3rem); margin:0 0 6px}
       .banner-overlay p{font-size:clamp(1rem, 1.8vw, 1.25rem); margin:0}
 
-      /* ===== LAYOUT / PROGRAM CARDS ===== */
+      /* Layout / cards */
       .container{max-width:1200px; margin:0 auto; padding:32px 20px}
-
-      /* categories (with icons) */
-      .categories{display:grid; grid-template-columns:repeat(5,1fr); gap:16px; margin:24px 0}
+      .categories{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin:24px 0}
       @media (max-width:992px){.categories{grid-template-columns:repeat(3,1fr)}}
       @media (max-width:640px){.categories{grid-template-columns:repeat(2,1fr)}}
       @media (max-width:440px){.categories{grid-template-columns:1fr}}
 
-      .category-card{
-        background:#fff; border:1px solid var(--border); border-radius:10px; padding:16px;
-        text-align:center; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
-      }
+      .category-card{background:#fff; border:1px solid var(--border); border-radius:10px; padding:16px; text-align:center; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px}
       .category-icon{font-size:2rem; line-height:1}
       .category-card h3{margin:4px 0 0; font-size:1rem}
       .category-card p{margin:2px 0 0; font-size:.85rem; color:#475569}
@@ -91,75 +119,62 @@
       .expiry-badge{display:inline-block; margin:6px 0 8px; padding:4px 8px; border-radius:999px; font-size:.75rem; border:1px solid #fde68a; background:#fffbeb; color:#92400e}
       .expiry-closed{background:#fef2f2; border-color:#fecaca; color:#991b1b}
 
-      /* ===== FLASH ===== */
-      .flash-area{position:fixed; top:calc(var(--header-h) + 6px); left:0; right:0; display:flex; justify-content:center; padding:0 20px; z-index:1200; pointer-events:none}
+      /* Flash */
+      .flash-area{
+        position:fixed;
+        top:calc(var(--header-h) + env(safe-area-inset-top, 0px) + 6px);
+        left:0; right:0;
+        display:flex; justify-content:center; padding:0 20px;
+        z-index:2000; pointer-events:none
+      }
       .flash-area .msg{pointer-events:auto; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:#fff}
 
-      /* ===== MODAL ===== */
+      /* Modal */
       .modal{display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:2000; align-items:center; justify-content:center; padding:16px}
-      .modal-content{
-        width:min(760px,96vw);
-        background:#fff; border:1px solid var(--border); border-radius:12px;
-        display:flex; flex-direction:column; max-height:92vh; overflow:hidden;
-      }
+      .modal-content{width:min(760px,96vw); background:#fff; border:1px solid var(--border); border-radius:12px; display:flex; flex-direction:column; max-height:92vh; overflow:hidden}
       @media (max-width:640px){.modal{padding:0}.modal-content{width:100vw; height:100svh; max-height:100svh; border-radius:0}}
-
       .modal-header{display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--border); position:sticky; top:0; background:#fff; z-index:2}
       .modal-title{margin:0; font-weight:800}
       .x-btn{border:1px solid var(--border); width:36px; height:36px; border-radius:8px; background:#f8fafc; cursor:pointer}
-
-      /* Program Description – simple bordered box */
-      .desc-box{display:none; margin:10px 14px 0; padding:10px 12px; border:1px solid var(--border); border-radius:10px; background:#fff}
-      .desc-text{font-size:.95rem; color:#1f2937}
-
       .form-body{padding:12px 14px; overflow:auto; flex:1 1 auto}
       .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
       @media (max-width:720px){.form-grid{grid-template-columns:1fr}}
       label{font-size:.9rem; margin:4px 0 6px; display:block}
-      input,select{
-        width:100%; border:1px solid var(--border); border-radius:10px; padding:10px 12px; font-size:16px;
-        font-variant-numeric: tabular-nums; font-feature-settings: "tnum";
-      }
+      input,select{width:100%; border:1px solid var(--border); border-radius:10px; padding:10px 12px; font-size:16px; font-variant-numeric:tabular-nums; font-feature-settings:"tnum"}
       input:focus,select:focus{outline:none; border-color:#a5b4fc; box-shadow:0 0 0 2px #e0e7ff}
-
-      .member-grid > div{min-width:0}
-      .member-grid input{letter-spacing:.02em}
-
-      input[type=number]::-webkit-outer-spin-button,
-      input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0 }
-      input[type=number]{ -moz-appearance:textfield }
-
-      .row[style]{gap:10px}
-      .counter{display:flex; align-items:center; gap:10px; border:1px solid var(--border); padding:6px; border-radius:10px}
-      .icon-btn{width:36px; height:36px; border-radius:8px; border:1px solid var(--border); background:#f8fafc; cursor:pointer}
       .members-title{margin:12px 0 6px; font-weight:800}
 
-      .members-head{display:none} /* header row hidden, since we now slide horizontally */
-
-      /* ===== HORIZONTAL SLIDER for members ===== */
-      .members-grid{
-        display:flex; gap:12px; overflow-x:auto; padding:8px 2px 4px;
-        scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch;
-      }
-      .members-grid::-webkit-scrollbar{height:8px}
-      .members-grid::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:6px}
-
-      .member-card{
-        border:1px solid var(--border); border-radius:10px; background:#fff; padding:10px;
-        flex:0 0 320px;            /* fixed width to slide sideways */
-        scroll-snap-align:start;   /* snap each card */
-      }
-
-      .member-grid{display:grid; grid-template-columns: 1fr; gap:8px; align-items:start}
-
+      /* Members: horizontal cards */
+      .members-grid{display:flex; gap:12px; overflow-x:auto; padding:8px 2px 4px; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch}
+      .member-card{border:1px solid var(--border); border-radius:10px; background:#fff; padding:10px; flex:0 0 320px; scroll-snap-align:start}
+      .member-grid{display:grid; grid-template-columns:1fr; gap:8px}
       .hint{font-size:.78rem; color:#6b7280; margin-top:4px}
       .is-invalid{border-color:var(--error) !important; box-shadow:0 0 0 2px rgba(239,68,68,.18) !important}
+      .counter{display:flex; align-items:center; gap:10px; border:1px solid var(--border); padding:6px; border-radius:10px}
+      .icon-btn{width:36px; height:36px; border-radius:8px; border:1px solid var(--border); background:#f8fafc; cursor:pointer}
 
+      /* Program description & expiry */
+      .desc-box{display:none; margin:10px 14px 0; padding:10px 12px; border:1px solid var(--border); border-radius:10px; background:#fff}
+      .desc-text{font-size:.95rem; color:#1f2937}
       .modal-actions{display:flex; gap:10px; justify-content:flex-end; padding:12px 14px; border-top:1px solid var(--border); background:#fff; position:sticky; bottom:0; z-index:2}
       .btn-secondary{background:#f8fafc; color:#111827; border:1px solid var(--border); padding:10px 14px; border-radius:10px; font-weight:700}
-      .btn-primary{background:linear-gradient(135deg,var(--brand1),var(--brand2)); color:#fff; border:none; padding:10px 16px; border-radius:10px; font-weight:800}
+      .btn-primary{background:linear-gradient(135deg,var(--brand1),var(--brand2)); color:#fff; border:none; padding:10px 16px; border-radius:16px; font-weight:800}
 
       footer{background:#2c3e50; color:#fff; text-align:center; padding:20px; margin-top:40px}
+
+      /* ===== Autocomplete styles for School ===== */
+      .ac-wrap{position:relative}
+      .ac-wrap input[type="text"]{width:100%}
+      .ac-list{
+        position:absolute; top:100%; left:0; right:0;
+        background:#fff; border:1px solid var(--border); border-top:none; max-height:220px; overflow:auto;
+        border-radius:0 0 10px 10px; box-shadow:0 8px 24px rgba(15,23,42,.08); z-index:20;
+        list-style:none; margin:0; padding:0;
+      }
+      .ac-item,.ac-empty{list-style:none}
+      .ac-item{padding:10px 12px; cursor:pointer}
+      .ac-item[aria-selected="true"], .ac-item:hover{background:#f3f4f6}
+      .ac-empty{padding:10px 12px; color:#6b7280}
     </style>
   </head>
   <body>
@@ -173,8 +188,7 @@
         <div class="mobile-menu-toggle" onclick="toggleMobileMenu()" aria-label="Toggle menu" aria-expanded="false" aria-controls="mainNav"><span></span><span></span><span></span></div>
         <nav id="mainNav" aria-label="Primary">
           <a href="#home" onclick="closeMobileMenu()">Home</a>
-          <a href="#lkg" onclick="closeMobileMenu()">LKG Programs</a>
-          <a href="#ukg" onclick="closeMobileMenu()">UKG Programs</a>
+          <a href="#kg" onclick="closeMobileMenu()">KG Programs</a>
           <a href="#lp" onclick="closeMobileMenu()">LP Programs</a>
           <a href="#up" onclick="closeMobileMenu()">UP Programs</a>
           <a href="#hs" onclick="closeMobileMenu()">HS Programs</a>
@@ -214,17 +228,12 @@
     </div>
 
     <div class="container">
-      <!-- CATEGORIES with icons -->
+      <!-- CATEGORIES -->
       <div class="categories">
-        <div class="category-card" onclick="scrollToSection('lkg')">
-          <div class="category-icon" aria-hidden="true">🎨</div>
-          <h3>LKG</h3>
-          <p>Creative activities for Lower KG</p>
-        </div>
-        <div class="category-card" onclick="scrollToSection('ukg')">
-          <div class="category-icon" aria-hidden="true">🎨</div>
-          <h3>UKG</h3>
-          <p>Engaging programs for Upper KG</p>
+        <div class="category-card" onclick="scrollToSection('kg')">
+          <div class="category-icon" aria-hidden="true">🧒</div>
+          <h3>KG</h3>
+          <p>LKG &amp; UKG programs together</p>
         </div>
         <div class="category-card" onclick="scrollToSection('lp')">
           <div class="category-icon" aria-hidden="true">⚽</div>
@@ -243,29 +252,33 @@
         </div>
       </div>
 
-      {# ===== Sections (server bindings unchanged) ===== #}
-      <div class="program-section" id="lkg">
-        <h3>LKG Programs</h3>
-        {% if programs_by_cat.LKG %}
+      {# ===== KG (LKG+UKG merged) ===== #}
+      <div class="program-section" id="kg">
+        <h3>KG Programs</h3>
+        {% if programs_by_cat.KG %}
         <div class="programs">
-          {% for p in programs_by_cat.LKG %}
+          {% for p in programs_by_cat.KG %}
           <div class="program-card">
-            {% if p.image %}<img class="program-image" src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">{% else %}<img class="program-image" src="{% static 'default.jpg' %}" alt="LKG" loading="lazy">{% endif %}
+            {% if p.image %}
+              <img class="program-image" src="{{ p.image.url }}" alt="KG {{ p.name }}" loading="lazy">
+            {% else %}
+              <img class="program-image" src="{% static 'default.jpg' %}" alt="KG" loading="lazy">
+            {% endif %}
             <div class="program-content">
-              <span class="program-category">LKG</span>
+              <span class="program-category">KG</span>
               <h4>{{ p.name }}</h4>
               <p>{{ p.description|default:"" }}</p>
               {% if p.expiry_date %}
                 {% if p.is_expired %}
-                <div class="expiry-badge expiry-closed">Closed on {{ p.expiry_date|date:"d M Y" }}</div>
+                  <div class="expiry-badge expiry-closed">Closed on {{ p.expiry_date|date:"d M Y" }}</div>
                 {% else %}
-                <div class="expiry-badge">Apply by {{ p.expiry_date|date:"d M Y" }}</div>
+                  <div class="expiry-badge">Apply by {{ p.expiry_date|date:"d M Y" }}</div>
                 {% endif %}
               {% endif %}
               <button class="apply-btn{% if p.is_expired %} disabled{% endif %}"
                 {% if not p.is_expired %}
                   onclick="applyProgram(
-                    '{{ p.category|escapejs }}',
+                    'KG',
                     '{{ p.name|escapejs }}',
                     '{{ p.description|default:''|escapejs }}',
                     {{ p.team_min|default:2 }},
@@ -278,46 +291,10 @@
           </div>
           {% endfor %}
         </div>
-        {% else %}<p>No LKG programmes yet.</p>{% endif %}
+        {% else %}<p>No KG programmes yet.</p>{% endif %}
       </div>
 
-      <div class="program-section" id="ukg">
-        <h3>UKG Programs</h3>
-        {% if programs_by_cat.UKG %}
-        <div class="programs">
-          {% for p in programs_by_cat.UKG %}
-          <div class="program-card">
-            {% if p.image %}<img class="program-image" src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">{% else %}<img class="program-image" src="{% static 'default.jpg' %}" alt="UKG" loading="lazy">{% endif %}
-            <div class="program-content">
-              <span class="program-category">UKG</span>
-              <h4>{{ p.name }}</h4>
-              <p>{{ p.description|default:"" }}</p>
-              {% if p.expiry_date %}
-                {% if p.is_expired %}
-                <div class="expiry-badge expiry-closed">Closed on {{ p.expiry_date|date:"d M Y" }}</div>
-                {% else %}
-                <div class="expiry-badge">Apply by {{ p.expiry_date|date:"d M Y" }}</div>
-                {% endif %}
-              {% endif %}
-              <button class="apply-btn{% if p.is_expired %} disabled{% endif %}"
-                {% if not p.is_expired %}
-                  onclick="applyProgram(
-                    '{{ p.category|escapejs }}',
-                    '{{ p.name|escapejs }}',
-                    '{{ p.description|default:''|escapejs }}',
-                    {{ p.team_min|default:2 }},
-                    {{ p.team_max|default:8 }},
-                    '{{ p.expiry_date|date:"Y-m-d"|default_if_none:'' }}'
-                  )"
-                {% else %}disabled aria-disabled="true"{% endif %}
-              >{% if p.is_expired %}Closed{% else %}Apply Now{% endif %}</button>
-            </div>
-          </div>
-          {% endfor %}
-        </div>
-        {% else %}<p>No UKG programmes yet.</p>{% endif %}
-      </div>
-
+      {# ===== LP ===== #}
       <div class="program-section" id="lp">
         <h3>LP Programs</h3>
         {% if programs_by_cat.LP %}
@@ -333,21 +310,11 @@
                 {% if p.is_expired %}
                 <div class="expiry-badge expiry-closed">Closed on {{ p.expiry_date|date:"d M Y" }}</div>
                 {% else %}
-                <div class="expiry-badge">Expiry date {{ p.expiry_date|date:"d M Y" }}</div>
+                <div class="expiry-badge">Apply by {{ p.expiry_date|date:"d M Y" }}</div>
                 {% endif %}
               {% endif %}
-              <!-- FIX: Button text now consistent "Apply Now" (unless expired) -->
               <button class="apply-btn{% if p.is_expired %} disabled{% endif %}"
-                {% if not p.is_expired %}
-                  onclick="applyProgram(
-                    '{{ p.category|escapejs }}',
-                    '{{ p.name|escapejs }}',
-                    '{{ p.description|default:''|escapejs }}',
-                    {{ p.team_min|default:2 }},
-                    {{ p.team_max|default:8 }},
-                    '{{ p.expiry_date|date:"Y-m-d"|default_if_none:'' }}'
-                  )"
-                {% else %}disabled aria-disabled="true"{% endif %}
+                {% if not p.is_expired %}onclick="applyProgram('{{ p.category|escapejs }}','{{ p.name|escapejs }}','{{ p.description|default:''|escapejs }}',{{ p.team_min|default:2 }},{{ p.team_max|default:8 }},'{{ p.expiry_date|date:"Y-m-d"|default_if_none:'' }}')" {% else %}disabled aria-disabled="true"{% endif %}
               >{% if p.is_expired %}Closed{% else %}Apply Now{% endif %}</button>
             </div>
           </div>
@@ -356,6 +323,7 @@
         {% else %}<p>No LP programmes yet.</p>{% endif %}
       </div>
 
+      {# ===== UP ===== #}
       <div class="program-section" id="up">
         <h3>UP Programs</h3>
         {% if programs_by_cat.UP %}
@@ -375,16 +343,7 @@
                 {% endif %}
               {% endif %}
               <button class="apply-btn{% if p.is_expired %} disabled{% endif %}"
-                {% if not p.is_expired %}
-                  onclick="applyProgram(
-                    '{{ p.category|escapejs }}',
-                    '{{ p.name|escapejs }}',
-                    '{{ p.description|default:''|escapejs }}',
-                    {{ p.team_min|default:2 }},
-                    {{ p.team_max|default:8 }},
-                    '{{ p.expiry_date|date:"Y-m-d"|default_if_none:'' }}'
-                  )"
-                {% else %}disabled aria-disabled="true"{% endif %}
+                {% if not p.is_expired %}onclick="applyProgram('{{ p.category|escapejs }}','{{ p.name|escapejs }}','{{ p.description|default:''|escapejs }}',{{ p.team_min|default:2 }},{{ p.team_max|default:8 }},'{{ p.expiry_date|date:"Y-m-d"|default_if_none:'' }}')" {% else %}disabled aria-disabled="true"{% endif %}
               >{% if p.is_expired %}Closed{% else %}Apply Now{% endif %}</button>
             </div>
           </div>
@@ -393,6 +352,7 @@
         {% else %}<p>No UP programmes yet.</p>{% endif %}
       </div>
 
+      {# ===== HS ===== #}
       <div class="program-section" id="hs">
         <h3>HS Programs</h3>
         {% if programs_by_cat.HS %}
@@ -412,16 +372,7 @@
                 {% endif %}
               {% endif %}
               <button class="apply-btn{% if p.is_expired %} disabled{% endif %}"
-                {% if not p.is_expired %}
-                  onclick="applyProgram(
-                    '{{ p.category|escapejs }}',
-                    '{{ p.name|escapejs }}',
-                    '{{ p.description|default:''|escapejs }}',
-                    {{ p.team_min|default:2 }},
-                    {{ p.team_max|default:8 }},
-                    '{{ p.expiry_date|date:"Y-m-d"|default_if_none:'' }}'
-                  )"
-                {% else %}disabled aria-disabled="true"{% endif %}
+                {% if not p.is_expired %}onclick="applyProgram('{{ p.category|escapejs }}','{{ p.name|escapejs }}','{{ p.description|default:''|escapejs }}',{{ p.team_min|default:2 }},{{ p.team_max|default:8 }},'{{ p.expiry_date|date:"Y-m-d"|default_if_none:'' }}')" {% else %}disabled aria-disabled="true"{% endif %}
               >{% if p.is_expired %}Closed{% else %}Apply Now{% endif %}</button>
             </div>
           </div>
@@ -449,17 +400,22 @@
           <div class="form-body">
             <div class="form-grid">
               <div>
-                <label for="school_id">School</label>
+                <label for="school_search">School</label>
                 {% if schools %}
-                  <select id="school_id" name="school_id" required>
-                    <option value="" disabled selected>Select your school</option>
-                    {% for s in schools %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
-                  </select>
+                  <!-- Autocomplete ONLY (no select) -->
+                  <div class="ac-wrap" role="combobox" aria-haspopup="listbox" aria-owns="school_listbox" aria-expanded="false">
+                    <input id="school_search" type="text" placeholder="Type to search school…" autocomplete="off"
+                           aria-autocomplete="list" aria-controls="school_listbox" />
+                    <input id="school_id" name="school_id" type="hidden" required />
+                    <ul id="school_listbox" class="ac-list" role="listbox" hidden></ul>
+                    <span id="school_help" class="hint">Choose a school from the suggestions.</span>
+                  </div>
                 {% else %}
                   <input type="text" id="school_text" name="school_text" placeholder="Type your school name" required>
-                  <div class="">No schools found yet. Add schools in Admin.</div>
+                  <div class="hint">No schools found yet. Add schools in Admin.</div>
                 {% endif %}
               </div>
+
               <div>
                 <label>Program</label>
                 <input type="text" id="program_display" value="" readonly>
@@ -470,7 +426,7 @@
             </div>
 
             <div style="margin-top:10px">
-              <label class="row" for="team_size" style="justify-content:space-between">
+              <label class="row" for="team_size" style="display:flex; justify-content:space-between; gap:8px">
                 <span>Applicants</span>
                 <span><span id="teamCountBadge">2</span> / <span id="teamMaxBadge">8</span></span>
               </label>
@@ -482,8 +438,6 @@
             </div>
 
             <div class="members-title">Student details</div>
-
-            <!-- Horizontal, side-sliding cards -->
             <div id="membersWrap" class="members-grid" aria-live="polite"></div>
 
             <input type="hidden" id="primary_name" name="name">
@@ -499,8 +453,18 @@
     </div>
 
     <footer>
-      <p>&copy; 2025 Children's Day Celebration. All rights reserved.</p>
+      <p>&copy; 2025 Children's Day Celebration. All rights reserved.v21</p>
     </footer>
+
+    <!-- ===== Schools JSON for autocomplete ===== -->
+    <script>
+      // Rendered from Django; safe to use client-side
+      const SCHOOLS = [
+        {% for s in schools %}
+          { id: {{ s.id }}, name: "{{ s.name|escapejs }}" }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+      ];
+    </script>
 
     <script>
       // Banner
@@ -514,17 +478,11 @@
       function toggleMobileMenu(){nav.classList.toggle('active');}
       function closeMobileMenu(){nav.classList.remove('active')}
       function scrollToSection(id){const el=document.getElementById(id); if(el) el.scrollIntoView({behavior:'smooth'}); closeMobileMenu()}
-
-      // Smooth scroll for hash links only
       document.querySelectorAll('nav a[href^="#"]').forEach(a=>{
-        a.addEventListener('click',(e)=>{
-          e.preventDefault();
-          const id=a.getAttribute('href').slice(1);
-          scrollToSection(id);
-        });
+        a.addEventListener('click',(e)=>{e.preventDefault(); scrollToSection(a.getAttribute('href').slice(1));});
       });
 
-      // Modal / Apply
+      // Modal / Apply (members & validation)
       const modal=document.getElementById('applyModal');
       const membersWrap=document.getElementById('membersWrap');
       const teamInput=document.getElementById('team_size');
@@ -539,7 +497,16 @@
       let teamMin=2, teamMax=8;
       let lastRenderedCount = 2;
 
-      // Phone validation: exactly 10 digits
+      let currentSectionOptions = []; // set in applyProgram()
+      const SECTION_MAP = {
+        'KG' : ['Pre-KG','LKG','UKG'],
+        'LP' : ['1','2','3','4'],
+        'UP' : ['5','6','7'],
+        'HS' : ['8','9','10']
+      };
+      function setSectionOptionsByCategory(displayCat){ currentSectionOptions = SECTION_MAP[displayCat] || []; }
+      function optionsHTML(opts){ return opts.map(o=>`<option value="${o}">${o}</option>`).join(''); }
+
       const PHONE_MSG = "Enter a valid 10-digit mobile number";
       const PHONE_RE = /^\d{10}$/;
       function sanitizeDigits(val){ return (val||'').replace(/\D+/g,''); }
@@ -547,12 +514,12 @@
         const digits = sanitizeDigits(input.value).slice(0,10);
         if(input.value !== digits) input.value = digits;
         if(!input.required && digits.length===0){
-          input.setCustomValidity(''); input.classList.remove('is-invalid'); input.removeAttribute('aria-invalid'); input.title = ''; return true;
+          input.setCustomValidity(''); input.classList.remove('is-invalid'); input.removeAttribute('aria-invalid'); input.title=''; return true;
         }
         if(!PHONE_RE.test(digits)){
           input.setCustomValidity(PHONE_MSG); input.classList.add('is-invalid'); input.setAttribute('aria-invalid','true'); input.title = PHONE_MSG; return false;
         }else{
-          input.setCustomValidity(''); input.classList.remove('is-invalid'); input.removeAttribute('aria-invalid'); input.title = ''; return true;
+          input.setCustomValidity(''); input.classList.remove('is-invalid'); input.removeAttribute('aria-invalid'); input.title=''; return true;
         }
       }
 
@@ -563,31 +530,36 @@
           <div class="member-grid">
             <div>
               <label for="members-${idx}-name">Full name</label>
-              <input required placeholder="Full name"
-                     id="members-${idx}-name" name="members-${idx}-name"
-                     autocomplete="name">
+              <input required placeholder="Full name" id="members-${idx}-name" name="members-${idx}-name" autocomplete="name">
+            </div>
+            <div>
+              <label for="members-${idx}-section">Class / Section</label>
+              <select required id="members-${idx}-section" name="members-${idx}-section"></select>
             </div>
             <div>
               <label for="members-${idx}-mobile">Phone</label>
-              <input required
-                     placeholder="10 digits"
-                     id="members-${idx}-mobile"
-                     name="members-${idx}-mobile"
-                     inputmode="tel" autocomplete="tel-national"
-                     pattern="^\\d{10}$" maxlength="10" minlength="10">
+              <input required placeholder="10 digits" id="members-${idx}-mobile" name="members-${idx}-mobile"
+                     inputmode="tel" autocomplete="tel-national" pattern="^\\d{10}$" maxlength="10" minlength="10">
               <div class="hint"></div>
             </div>
             <div>
               <label for="members-${idx}-alt">Alternative phone (optional)</label>
-              <input
-                     placeholder="10 digits"
-                     id="members-${idx}-alt"
-                     name="members-${idx}-alt"
-                     inputmode="tel" autocomplete="tel"
-                     pattern="^\\d{10}$" maxlength="10" minlength="10">
+              <input placeholder="10 digits" id="members-${idx}-alt" name="members-${idx}-alt"
+                     inputmode="tel" autocomplete="tel" pattern="^\\d{10}$" maxlength="10" minlength="10">
             </div>
           </div>
         </div>`;
+      }
+
+      function populateSectionSelects(){
+        const selects = membersWrap.querySelectorAll('select[id$="-section"]');
+        const html = optionsHTML(currentSectionOptions);
+        selects.forEach(sel=>{
+          sel.innerHTML = html;
+          if(!Array.from(sel.options).some(o => o.value === sel.value)){
+            sel.value = currentSectionOptions[0] || '';
+          }
+        });
       }
 
       function attachPhoneValidation(){
@@ -605,10 +577,11 @@
         const prev = lastRenderedCount;
         let html=''; for(let i=1;i<=n;i++) html+=memberCardHTML(i);
         membersWrap.innerHTML=html;
+
+        populateSectionSelects();
         attachPhoneValidation();
         teamBadge.textContent=String(n);
 
-        // Auto-scroll horizontally to the newest card and focus its mobile
         if(n>prev){
           const last = document.getElementById(`member-card-${n-1}`);
           if(last){
@@ -623,12 +596,14 @@
       }
 
       function applyProgram(category, programName, description, minVal, maxVal, expiryISO){
-        const combined=(category?(category+' '):'')+programName;
-        if(description && description.trim().length>0){
-          descText.textContent=description; descBox.style.display='block';
-        }else{
-          descText.textContent=''; descBox.style.display='none';
-        }
+        const displayCat = (category==='LKG' || category==='UKG') ? 'KG' : (category||'');
+        const combined = (displayCat ? (displayCat+' ') : '') + programName;
+
+        setSectionOptionsByCategory(displayCat);
+
+        if(description && description.trim().length>0){ descText.textContent=description; descBox.style.display='block'; }
+        else { descText.textContent=''; descBox.style.display='none'; }
+
         if(expiryISO){
           const d=new Date(expiryISO+'T00:00:00');
           const fmt=d.toLocaleDateString(undefined,{day:'2-digit',month:'short',year:'numeric'});
@@ -636,6 +611,7 @@
         }else{
           expiryBadge.style.display='none'; expiryBadge.textContent='';
         }
+
         teamMin=(typeof minVal==='number' && !isNaN(minVal))?minVal:2;
         teamMax=(typeof maxVal==='number' && !isNaN(maxVal))?maxVal:8;
 
@@ -648,10 +624,17 @@
         teamInput.min=String(teamMin); teamInput.max=String(teamMax); teamInput.value=String(teamMin);
         teamMaxBadge.textContent=String(teamMax);
 
+        const sSearch = document.getElementById('school_search');
+        const sId = document.getElementById('school_id');
+        if(sSearch){ sSearch.value=''; }
+        if(sId){ sId.value=''; }
+
         lastRenderedCount = 0;
         renderMembers(parseInt(teamInput.value||'2',10), {focusNew:true});
         modal.style.display='flex'; modal.setAttribute('aria-hidden','false');
         const body=document.querySelector('.form-body'); if(body) body.scrollTop=0;
+
+        setTimeout(()=>document.getElementById('school_search')?.focus(), 50);
       }
 
       function closeModal(){
@@ -668,30 +651,111 @@
         descText.textContent=''; descBox.style.display='none';
         expiryBadge.style.display='none'; expiryBadge.textContent='';
         teamMin=2; teamMax=8; lastRenderedCount=2;
+        currentSectionOptions = [];
+
+        const sSearch = document.getElementById('school_search');
+        const sId = document.getElementById('school_id');
+        if(sSearch){ sSearch.value=''; }
+        if(sId){ sId.value=''; }
+        hideAC();
       }
       modal.addEventListener('click',(e)=>{if(e.target===modal) closeModal();});
       document.addEventListener('keydown',(e)=>{if(e.key==='Escape' && modal.style.display==='flex') closeModal();});
 
-      function updateMembersUI(opts={}){
-        let n=clamp(teamInput.value||teamMin);
-        teamInput.value=String(n);
-        renderMembers(n, opts);
-      }
+      function updateMembersUI(opts={}){ let n=clamp(teamInput.value||teamMin); teamInput.value=String(n); renderMembers(n, opts); }
       teamInput.addEventListener('input',()=>updateMembersUI());
       teamInput.addEventListener('change',()=>updateMembersUI());
-
-      incBtn.addEventListener('click',()=>{
-        teamInput.value=String(clamp((parseInt(teamInput.value||teamMin,10))+1));
-        updateMembersUI({focusNew:true});
-      });
-      decBtn.addEventListener('click',()=>{
-        teamInput.value=String(clamp((parseInt(teamInput.value||teamMin,10))-1));
-        updateMembersUI();
-      });
-
-      // Initial render
+      incBtn.addEventListener('click',()=>{ teamInput.value=String(clamp((parseInt(teamInput.value||teamMin,10))+1)); updateMembersUI({focusNew:true}); });
+      decBtn.addEventListener('click',()=>{ teamInput.value=String(clamp((parseInt(teamInput.value||teamMin,10))-1)); updateMembersUI(); });
       renderMembers(parseInt(teamInput.value||'2',10));
+
+      // ====== AUTOCOMPLETE (School) ======
+      const acInput = document.getElementById('school_search');
+      const acList = document.getElementById('school_listbox');
+      const acHidden = document.getElementById('school_id');
+      let acIndex = -1;
+      function filterSchools(q){
+        q = (q||'').trim().toLowerCase();
+        if(!q) return [];
+        return SCHOOLS.filter(s => s.name.toLowerCase().includes(q)).slice(0, 10);
+      }
+      function renderAC(items){
+        acList.innerHTML = '';
+        acIndex = -1;
+        if(items.length === 0){
+          const li = document.createElement('li');
+          li.className = 'ac-empty';
+          li.textContent = 'No matches';
+          li.setAttribute('role','option');
+          acList.appendChild(li);
+        }else{
+          items.forEach((s, i)=>{
+            const li = document.createElement('li');
+            li.className = 'ac-item';
+            li.setAttribute('role','option');
+            li.setAttribute('id', 'ac-opt-'+s.id);
+            li.setAttribute('data-id', String(s.id));
+            li.textContent = s.name;
+            li.addEventListener('mousedown', (ev)=>{ ev.preventDefault(); selectAC(i, items); });
+            acList.appendChild(li);
+          });
+        }
+        acList.hidden = false;
+        acInput.setAttribute('aria-expanded','true');
+      }
+      function hideAC(){
+        if(acList){ acList.hidden = true; acList.innerHTML=''; }
+        if(acInput){ acInput.setAttribute('aria-expanded','false'); }
+        acIndex = -1;
+      }
+      function highlightAC(i){
+        const items = acList.querySelectorAll('.ac-item');
+        items.forEach((el, idx)=> el.setAttribute('aria-selected', idx===i ? 'true' : 'false'));
+      }
+      function selectAC(i, items){
+        const sel = items[i];
+        if(!sel) return;
+        acInput.value = sel.name;
+        acHidden.value = sel.id;
+        hideAC();
+      }
+      if(acInput){
+        acInput.addEventListener('input', ()=>{
+          acHidden.value = '';
+          const items = filterSchools(acInput.value);
+          renderAC(items);
+        });
+        acInput.addEventListener('blur', ()=>{ setTimeout(hideAC, 120); });
+        acInput.addEventListener('keydown', (e)=>{
+          const items = Array.from(acList.querySelectorAll('.ac-item')).map(li=>{
+            return { id: parseInt(li.getAttribute('data-id')), name: li.textContent || ''};
+          });
+          if(e.key==='ArrowDown'){ e.preventDefault(); if(items.length){ acIndex = (acIndex+1) % items.length; highlightAC(acIndex);} }
+          else if(e.key==='ArrowUp'){ e.preventDefault(); if(items.length){ acIndex = (acIndex-1+items.length) % items.length; highlightAC(acIndex);} }
+          else if(e.key==='Enter'){ if(acIndex>=0 && items.length){ e.preventDefault(); selectAC(acIndex, items);} }
+          else if(e.key==='Escape'){ hideAC(); }
+        });
+      }
+      document.addEventListener('click', (e)=>{
+        if(!document.querySelector('.ac-wrap')?.contains(e.target)){ hideAC(); }
+      });
+
+      // Block submit unless a suggested school was chosen (when schools list exists)
+      const applyForm = document.getElementById('applyForm');
+      applyForm.addEventListener('submit', (e)=>{
+        if(typeof SCHOOLS !== 'undefined' && SCHOOLS.length){
+          if(!acHidden.value){
+            e.preventDefault();
+            acInput.focus();
+            acInput.classList.add('is-invalid');
+            document.getElementById('school_help').textContent = 'Please pick a school from the suggestions.';
+            return false;
+          }else{
+            acInput.classList.remove('is-invalid');
+            document.getElementById('school_help').textContent = 'Choose a school from the suggestions.';
+          }
+        }
+      });
     </script>
   </body>
 </html>
-

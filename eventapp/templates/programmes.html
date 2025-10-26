@@ -29,12 +29,7 @@
       box-shadow:2px 0 8px rgba(0,0,0,.03);
     }
     .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px}
-    .brand .logo{font-size:22px}
-    .brand .title{
-      font-weight:800;background:linear-gradient(90deg,var(--brand1),var(--brand2));
-      -webkit-background-clip:text;background-clip:text;color:transparent
-    }
-    .nav h5{font-size:12px;color:#94a3b8;letter-spacing:.08em;text-transform:uppercase;margin:10px 0 6px}
+    .brand .logo img{display:block}
     .nav a{
       display:flex;align-items:center;gap:10px;text-decoration:none;color:#374151;
       padding:10px 12px;border-radius:10px;transition:.2s;
@@ -126,11 +121,14 @@
       </a>
     </div>
     <nav class="nav">
-      <a href="{% url 'eventapp:dashboard' %}">Applications</a>
-      <a href="{% url 'eventapp:school_list' %}">Schools</a>
-      <a href="{% url 'eventapp:program_list' %}" class="active">Programmes</a>
-      <!-- <a href="{% url 'eventapp:banner_list' %}" class="active">Banner</a> -->
-      <a href="{% url 'eventapp:winners' %}" class="active">Winners</a>
+      <a href="{% url 'eventapp:dashboard' %}"
+         class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">Applications</a>
+      <a href="{% url 'eventapp:school_list' %}"
+         class="{% if request.resolver_match.url_name == 'school_list' %}active{% endif %}">Schools</a>
+      <a href="{% url 'eventapp:program_list' %}"
+         class="{% if request.resolver_match.url_name == 'program_list' %}active{% endif %}">Programmes</a>
+      <a href="{% url 'eventapp:winners' %}"
+         class="{% if request.resolver_match.url_name == 'winners' %}active{% endif %}">Winners</a>
     </nav>
     <a class="logout" href="{% url 'eventapp:logout' %}">Logout</a>
   </aside>
@@ -146,11 +144,10 @@
         <form method="get" action="" id="catForm" style="display:flex;gap:8px;align-items:center">
           <select name="cat" onchange="document.getElementById('catForm').submit()">
             <option value="">All categories</option>
-            <option value="LKG" {% if request.GET.cat == 'LKG' %}selected{% endif %}>LKG</option>
-            <option value="UKG" {% if request.GET.cat == 'UKG' %}selected{% endif %}>UKG</option>
-            <option value="LP"  {% if request.GET.cat == 'LP'  %}selected{% endif %}>LP</option>
-            <option value="UP"  {% if request.GET.cat == 'UP'  %}selected{% endif %}>UP</option>
-            <option value="HS"  {% if request.GET.cat == 'HS'  %}selected{% endif %}>HS</option>
+            <option value="KG" {% if request.GET.cat == 'KG' %}selected{% endif %}>KG</option>
+            <option value="LP" {% if request.GET.cat == 'LP' %}selected{% endif %}>LP</option>
+            <option value="UP" {% if request.GET.cat == 'UP' %}selected{% endif %}>UP</option>
+            <option value="HS" {% if request.GET.cat == 'HS' %}selected{% endif %}>HS</option>
           </select>
           <input type="search" name="q" placeholder="Search programme..." value="{{ q|default:'' }}">
           <button class="btn ghost" type="submit">Search</button>
@@ -198,11 +195,10 @@
                     <input type="text" name="name" value="{{ p.name }}" required>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
                       <select name="category" required>
-                        <option value="LKG" {% if p.category == 'LKG' %}selected{% endif %}>LKG</option>
-                        <option value="UKG" {% if p.category == 'UKG' %}selected{% endif %}>UKG</option>
-                        <option value="LP"  {% if p.category == 'LP'  %}selected{% endif %}>LP</option>
-                        <option value="UP"  {% if p.category == 'UP'  %}selected{% endif %}>UP</option>
-                        <option value="HS"  {% if p.category == 'HS'  %}selected{% endif %}>HS</option>
+                        <option value="KG" {% if p.category == 'KG' %}selected{% endif %}>KG</option>
+                        <option value="LP" {% if p.category == 'LP' %}selected{% endif %}>LP</option>
+                        <option value="UP" {% if p.category == 'UP' %}selected{% endif %}>UP</option>
+                        <option value="HS" {% if p.category == 'HS' %}selected{% endif %}>HS</option>
                       </select>
                       <input type="file" name="image" accept="image/*">
                     </div>
@@ -300,12 +296,12 @@
               <label>Category</label>
               <select name="category" required>
                 <option value="">Select</option>
-                <option>LKG</option><option>UKG</option><option>LP</option><option>UP</option><option>HS</option>
+                <option>KG</option><option>LP</option><option>UP</option><option>HS</option>
               </select>
             </div>
             <div>
               <label>Programme Name</label>
-              <input type="text" name="name" placeholder="e.g., LKG Music" required>
+              <input type="text" name="name" placeholder="e.g., KG Music" required>
             </div>
             <div style="grid-column:1 / -1">
               <label>Description</label>
@@ -358,7 +354,7 @@
               <label>Category</label>
               <select name="category" id="editCategory" required>
                 <option value="">Select</option>
-                <option>LKG</option><option>UKG</option><option>LP</option><option>UP</option><option>HS</option>
+                <option>KG</option><option>LP</option><option>UP</option><option>HS</option>
               </select>
             </div>
             <div>
